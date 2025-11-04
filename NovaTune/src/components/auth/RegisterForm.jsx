@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { registerUser } from '../../services/userApi.js'; // ← NUEVO IMPORT
+import { registerUser } from '../../services/userApi.js';
 import './RegisterForm.css';
 
 const RegisterForm = ({ onBack }) => {
@@ -10,7 +10,9 @@ const RegisterForm = ({ onBack }) => {
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
-    const [isLoading, setIsLoading] = useState(false); // ← NUEVO STATE para loading
+    const [isLoading, setIsLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState(''); // ← NUEVO STATE para éxito
+    const [showSuccess, setShowSuccess] = useState(false); // ← Controlar visibilidad del éxito
 
     // Validación en tiempo real
     const validateField = (name, value) => {
@@ -60,6 +62,11 @@ const RegisterForm = ({ onBack }) => {
             ...formData,
             [name]: value
         });
+
+        // Limpiar mensajes cuando el usuario empiece a escribir
+        if (showSuccess) setShowSuccess(false);
+        if (successMessage) setSuccessMessage('');
+
         validateField(name, value);
     };
 
@@ -71,7 +78,6 @@ const RegisterForm = ({ onBack }) => {
         });
     };
 
-    // NUEVA FUNCIÓN PARA MANEJAR EL ENVÍO
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -94,30 +100,49 @@ const RegisterForm = ({ onBack }) => {
 
         // Si todo está bien, enviar al backend
         setIsLoading(true);
-        setErrors({}); // Limpiar errores anteriores
+        setErrors({});
+        setSuccessMessage('');
+        setShowSuccess(false);
 
         try {
             const response = await registerUser(formData);
 
-            // ÉXITO - Lo manejaremos en el PASO 4
-            console.log('Usuario registrado:', response);
-            // Aquí irá la lógica de éxito que haremos en el PASO 4
+            // ✅ ÉXITO - Mostrar mensaje bonito
+            setSuccessMessage(`¡Cuenta creada exitosamente! Tu ID de usuario es: ${response.user_id}`);
+            setShowSuccess(true);
+
+            // Limpiar formulario
+            setFormData({
+                username: '',
+                email: '',
+                password: ''
+            });
+
+            // Redirección automática (la implementaremos en PASO 5)
+            console.log('Registro exitoso, listo para redirigir');
 
         } catch (error) {
-            // MANEJO DE ERRORES - Lo mejoraremos en el PASO 4
-            console.error('Error en registro:', error);
+        // ❌ ERRORES - Mostrar mensajes específicos
+        console.log('Error completo:', error); // Para debugging
 
-            if (error.data && error.data.details) {
-                // Errores de validación del servidor
-                setErrors(error.data.details);
-            } else if (error.data && error.data.message) {
-                // Error general del servidor
-                setErrors({ general: error.data.message });
-            } else {
-                // Error de conexión
-                setErrors({ general: 'Error de conexión con el servidor' });
-            }
-        } finally {
+        if (error.status === 422 && error.data && error.data.details) {
+            // Errores de validación del servidor (email duplicado, etc.)
+            setErrors(error.data.details);
+        } else if (error.status === 409 && error.data) {
+            // Conflicto - email duplicado
+            setErrors({ general: 'Este email ya está registrado. ¿Ya tienes una cuenta?' });
+        } else if (error.data && error.data.message) {
+            // Error general del servidor
+            setErrors({ general: error.data.message });
+        } else if (error.status === 0) {
+            // Error de conexión
+            setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+        } else {
+            // Error inesperado
+            setErrors({ general: 'Ha ocurrido un error inesperado. Intenta nuevamente.' });
+        }
+        setShowSuccess(false);
+    } finally {
             setIsLoading(false);
         }
     };
@@ -128,6 +153,18 @@ const RegisterForm = ({ onBack }) => {
         <div className="register-container">
             <button onClick={onBack} className="back-btn">← Volver</button>
             <h2>Crear Cuenta en NovaTune</h2>
+
+            {/* ✅ MENSAJE DE ÉXITO */}
+            {showSuccess && (
+                <div className="success-message">
+                    <div className="success-icon">✓</div>
+                    <div className="success-content">
+                        <strong>¡Registro Exitoso!</strong>
+                        <p>{successMessage}</p>
+                        <small>Serás redirigido automáticamente...</small>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="register-form">
                 <div className="form-group">
@@ -140,7 +177,7 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('username') ? 'error' : ''}
-                        disabled={isLoading}
+                        disabled={isLoading || showSuccess}
                     />
                     {showError('username') && (
                         <span className="error-text">{errors.username}</span>
@@ -157,7 +194,7 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('email') ? 'error' : ''}
-                        disabled={isLoading}
+                        disabled={isLoading || showSuccess}
                     />
                     {showError('email') && (
                         <span className="error-text">{errors.email}</span>
@@ -174,16 +211,17 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('password') ? 'error' : ''}
-                        disabled={isLoading}
+                        disabled={isLoading || showSuccess}
                     />
                     {showError('password') && (
                         <span className="error-text">{errors.password}</span>
                     )}
                 </div>
 
-                {/* Error general */}
-                {errors.general && (
-                    <div className="error-text" style={{textAlign: 'center', marginTop: '10px'}}>
+                {/* ❌ ERROR GENERAL */}
+                {errors.general && !showSuccess && (
+                    <div className="error-message">
+                        <div className="error-icon">⚠</div>
                         {errors.general}
                     </div>
                 )}
@@ -191,7 +229,7 @@ const RegisterForm = ({ onBack }) => {
                 <button
                     type="submit"
                     className="submit-btn"
-                    disabled={isLoading}
+                    disabled={isLoading || showSuccess}
                 >
                     {isLoading ? 'Registrando...' : 'Registrarse'}
                 </button>
