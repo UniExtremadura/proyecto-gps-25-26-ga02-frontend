@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { registerUser } from '../../services/userApi.js'; // ← NUEVO IMPORT
 import './RegisterForm.css';
 
 const RegisterForm = ({ onBack }) => {
@@ -9,6 +10,7 @@ const RegisterForm = ({ onBack }) => {
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [isLoading, setIsLoading] = useState(false); // ← NUEVO STATE para loading
 
     // Validación en tiempo real
     const validateField = (name, value) => {
@@ -58,8 +60,6 @@ const RegisterForm = ({ onBack }) => {
             ...formData,
             [name]: value
         });
-
-        // Validar campo después de cambiar
         validateField(name, value);
     };
 
@@ -71,7 +71,8 @@ const RegisterForm = ({ onBack }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    // NUEVA FUNCIÓN PARA MANEJAR EL ENVÍO
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validar todos los campos antes de enviar
@@ -86,14 +87,41 @@ const RegisterForm = ({ onBack }) => {
             password: true
         });
 
-        // Si no hay errores, proceder (lo conectaremos en el PASO 3)
-        if (Object.keys(errors).length === 0) {
-            console.log('Formulario válido, listo para enviar:', formData);
-            // Aquí irá la conexión con el backend
+        // Si hay errores de validación, no enviar
+        if (Object.keys(errors).length > 0) {
+            return;
+        }
+
+        // Si todo está bien, enviar al backend
+        setIsLoading(true);
+        setErrors({}); // Limpiar errores anteriores
+
+        try {
+            const response = await registerUser(formData);
+
+            // ÉXITO - Lo manejaremos en el PASO 4
+            console.log('Usuario registrado:', response);
+            // Aquí irá la lógica de éxito que haremos en el PASO 4
+
+        } catch (error) {
+            // MANEJO DE ERRORES - Lo mejoraremos en el PASO 4
+            console.error('Error en registro:', error);
+
+            if (error.data && error.data.details) {
+                // Errores de validación del servidor
+                setErrors(error.data.details);
+            } else if (error.data && error.data.message) {
+                // Error general del servidor
+                setErrors({ general: error.data.message });
+            } else {
+                // Error de conexión
+                setErrors({ general: 'Error de conexión con el servidor' });
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // Helper para mostrar errores solo si el campo fue tocado
     const showError = (field) => touched[field] && errors[field];
 
     return (
@@ -112,6 +140,7 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('username') ? 'error' : ''}
+                        disabled={isLoading}
                     />
                     {showError('username') && (
                         <span className="error-text">{errors.username}</span>
@@ -128,6 +157,7 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('email') ? 'error' : ''}
+                        disabled={isLoading}
                     />
                     {showError('email') && (
                         <span className="error-text">{errors.email}</span>
@@ -144,14 +174,26 @@ const RegisterForm = ({ onBack }) => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         className={showError('password') ? 'error' : ''}
+                        disabled={isLoading}
                     />
                     {showError('password') && (
                         <span className="error-text">{errors.password}</span>
                     )}
                 </div>
 
-                <button type="submit" className="submit-btn">
-                    Registrarse
+                {/* Error general */}
+                {errors.general && (
+                    <div className="error-text" style={{textAlign: 'center', marginTop: '10px'}}>
+                        {errors.general}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    className="submit-btn"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Registrando...' : 'Registrarse'}
                 </button>
             </form>
         </div>
