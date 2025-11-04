@@ -107,7 +107,7 @@ const RegisterForm = ({ onBack }) => {
         try {
             const response = await registerUser(formData);
 
-            // ✅ ÉXITO - Mostrar mensaje bonito
+            // ÉXITO - Mostrar mensaje bonito
             setSuccessMessage(`¡Cuenta creada exitosamente! Tu ID de usuario es: ${response.user_id}`);
             setShowSuccess(true);
 
@@ -118,11 +118,14 @@ const RegisterForm = ({ onBack }) => {
                 password: ''
             });
 
-            // Redirección automática (la implementaremos en PASO 5)
-            console.log('Registro exitoso, listo para redirigir');
+            // REDIRECCIÓN AUTOMÁTICA después de 3 segundos
+            setTimeout(() => {
+                // Redirigir a la página principal
+                window.location.href = '/';
+            }, 3000);
 
         } catch (error) {
-        // ❌ ERRORES - Mostrar mensajes específicos
+        // ERRORES - Mostrar mensajes específicos
         console.log('Error completo:', error); // Para debugging
 
         if (error.status === 422 && error.data && error.data.details) {
