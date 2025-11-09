@@ -125,4 +125,57 @@ const LoginForm = ({ onBack, onSuccess }) => {
     );
 };
 
+// Añadir states para mensajes
+const [successMessage, setSuccessMessage] = useState('');
+const [showSuccess, setShowSuccess] = useState(false);
+
+// En el bloque try del handleSubmit:
+const response = await loginUser(formData);
+
+// ✅ ÉXITO - Mostrar mensaje y guardar tokens
+setSuccessMessage(`¡Bienvenido de nuevo! Sesión iniciada correctamente.`);
+setShowSuccess(true);
+
+// Guardar tokens en localStorage
+localStorage.setItem('access_token', response.access_token);
+localStorage.setItem('refresh_token', response.refresh_token);
+
+// Limpiar formulario
+setFormData({
+    email: '',
+    password: ''
+});
+
+// En el bloque catch:
+if (error.status === 422 && error.data && error.data.details) {
+    // Errores de validación del servidor
+    setErrors(error.data.details);
+} else if (error.status === 0) {
+    // Error de conexión
+    setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+} else {
+    // Error inesperado
+    setErrors({ general: error.data?.message || 'Ha ocurrido un error inesperado.' });
+}
+setShowSuccess(false);
+
+// Añadir en el JSX los mensajes:
+{showSuccess && (
+    <div className="success-message">
+        <div className="success-icon">✓</div>
+        <div className="success-content">
+            <strong>¡Sesión Iniciada!</strong>
+            <p>{successMessage}</p>
+            <small>Redirigiendo...</small>
+        </div>
+    </div>
+)}
+
+{errors.general && !showSuccess && (
+    <div className="error-message">
+        <div className="error-icon">⚠</div>
+        {errors.general}
+    </div>
+)}
+
 export default LoginForm;
