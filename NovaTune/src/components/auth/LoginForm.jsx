@@ -8,20 +8,80 @@ const LoginForm = ({ onBack, onSuccess }) => {
         password: ''
     });
 
+    const [errors, setErrors] = useState({});
+    const [touched, setTouched] = useState({});
+
+// Validación en tiempo real
+    const validateField = (name, value) => {
+        const newErrors = { ...errors };
+
+        switch (name) {
+            case 'email':
+                if (!value.trim()) {
+                    newErrors.email = 'El email es requerido';
+                } else if (!/\S+@\S+\.\S+/.test(value)) {
+                    newErrors.email = 'Formato de email inválido';
+                } else {
+                    delete newErrors.email;
+                }
+                break;
+
+            case 'password':
+                if (!value) {
+                    newErrors.password = 'La contraseña es requerida';
+                } else {
+                    delete newErrors.password;
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        setErrors(newErrors);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
             [name]: value
         });
+        validateField(name, value);
+    };
+
+    const handleBlur = (e) => {
+        const { name } = e.target;
+        setTouched({
+            ...touched,
+            [name]: true
+        });
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Datos del formulario:', formData);
-        // Lógica temporal
-        alert('Formulario de login enviado. Esto se conectará al backend en la siguiente tarea.');
+
+        // Validar todos los campos antes de enviar
+        Object.keys(formData).forEach(key => {
+            validateField(key, formData[key]);
+        });
+
+        // Marcar todos los campos como tocados
+        setTouched({
+            email: true,
+            password: true
+        });
+
+        // Si hay errores, no enviar
+        if (Object.keys(errors).length > 0) {
+            return;
+        }
+
+        console.log('Formulario válido, listo para conectar con el backend');
     };
+
+// Helper para mostrar errores
+    const showError = (field) => touched[field] && errors[field];
 
     return (
         <div className="login-container">
