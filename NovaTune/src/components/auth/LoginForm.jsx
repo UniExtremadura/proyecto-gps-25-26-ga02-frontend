@@ -1,5 +1,5 @@
-// En LoginForm.jsx - Solo la estructura básica
 import React, { useState } from 'react';
+import { loginUser } from '../../services/userApi.js';
 import './LoginForm.css';
 
 const LoginForm = ({ onBack, onSuccess }) => {
@@ -7,11 +7,13 @@ const LoginForm = ({ onBack, onSuccess }) => {
         email: '',
         password: ''
     });
-
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [showSuccess, setShowSuccess] = useState(false);
 
-// Validación en tiempo real
+    // Validación en tiempo real
     const validateField = (name, value) => {
         const newErrors = { ...errors };
 
@@ -47,6 +49,11 @@ const LoginForm = ({ onBack, onSuccess }) => {
             ...formData,
             [name]: value
         });
+
+        // Limpiar mensajes cuando el usuario empiece a escribir
+        if (showSuccess) setShowSuccess(false);
+        if (successMessage) setSuccessMessage('');
+
         validateField(name, value);
     };
 
@@ -58,7 +65,7 @@ const LoginForm = ({ onBack, onSuccess }) => {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         // Validar todos los campos antes de enviar
@@ -72,21 +79,84 @@ const LoginForm = ({ onBack, onSuccess }) => {
             password: true
         });
 
-        // Si hay errores, no enviar
+        // Si hay errores de validación, no enviar
         if (Object.keys(errors).length > 0) {
             return;
         }
 
-        console.log('Formulario válido, listo para conectar con el backend');
+        // Si todo está bien, enviar al backend
+        setIsLoading(true);
+        setErrors({});
+        setSuccessMessage('');
+        setShowSuccess(false);
+
+        try {
+            const response = await loginUser(formData);
+
+            // ✅ ÉXITO - Mostrar mensaje y guardar tokens
+            setSuccessMessage(`¡Bienvenido de nuevo! Sesión iniciada correctamente.`);
+            setShowSuccess(true);
+
+            // Guardar tokens en localStorage
+            localStorage.setItem('access_token', response.access_token);
+            localStorage.setItem('refresh_token', response.refresh_token);
+
+            console.log('Tokens guardados:', {
+                access_token: response.access_token,
+                refresh_token: response.refresh_token
+            });
+
+            // Limpiar formulario
+            setFormData({
+                email: '',
+                password: ''
+            });
+
+            // 🔄 REDIRECCIÓN AUTOMÁTICA después de 2 segundos
+            setTimeout(() => {
+                if (onSuccess) {
+                    onSuccess(response);
+                } else {
+                    window.location.href = '/';
+                }
+            }, 2000);
+
+        } catch (error) {
+            // ❌ ERRORES - Mostrar mensajes específicos
+            if (error.status === 422 && error.data && error.data.details) {
+                // Errores de validación del servidor
+                setErrors(error.data.details);
+            } else if (error.status === 0) {
+                // Error de conexión
+                setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+            } else {
+                // Error inesperado
+                setErrors({ general: error.data?.message || 'Ha ocurrido un error inesperado.' });
+            }
+            setShowSuccess(false);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-// Helper para mostrar errores
     const showError = (field) => touched[field] && errors[field];
 
     return (
         <div className="login-container">
             <button onClick={onBack} className="back-btn">← Volver</button>
             <h2>Iniciar Sesión en NovaTune</h2>
+
+            {/* ✅ MENSAJE DE ÉXITO */}
+            {showSuccess && (
+                <div className="success-message">
+                    <div className="success-icon">✓</div>
+                    <div className="success-content">
+                        <strong>¡Sesión Iniciada!</strong>
+                        <p>{successMessage}</p>
+                        <small>Redirigiendo...</small>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="login-form">
                 <div className="form-group">
@@ -97,8 +167,14 @@ const LoginForm = ({ onBack, onSuccess }) => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
+                        onBlur={handleBlur}
+                        className={showError('email') ? 'error' : ''}
+                        disabled={isLoading || showSuccess}
                         placeholder="tu@email.com"
                     />
+                    {showError('email') && (
+                        <span className="error-text">{errors.email}</span>
+                    )}
                 </div>
 
                 <div className="form-group">
@@ -109,12 +185,30 @@ const LoginForm = ({ onBack, onSuccess }) => {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
+                        onBlur={handleBlur}
+                        className={showError('password') ? 'error' : ''}
+                        disabled={isLoading || showSuccess}
                         placeholder="Tu contraseña"
                     />
+                    {showError('password') && (
+                        <span className="error-text">{errors.password}</span>
+                    )}
                 </div>
 
-                <button type="submit" className="submit-btn">
-                    Iniciar Sesión
+                {/* ❌ ERROR GENERAL */}
+                {errors.general && !showSuccess && (
+                    <div className="error-message">
+                        <div className="error-icon">⚠</div>
+                        {errors.general}
+                    </div>
+                )}
+
+                <button
+                    type="submit"
+                    className="submit-btn"
+                    disabled={isLoading || showSuccess}
+                >
+                    {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </button>
 
                 <div className="login-links">
@@ -124,58 +218,5 @@ const LoginForm = ({ onBack, onSuccess }) => {
         </div>
     );
 };
-
-// Añadir states para mensajes
-const [successMessage, setSuccessMessage] = useState('');
-const [showSuccess, setShowSuccess] = useState(false);
-
-// En el bloque try del handleSubmit:
-const response = await loginUser(formData);
-
-// ✅ ÉXITO - Mostrar mensaje y guardar tokens
-setSuccessMessage(`¡Bienvenido de nuevo! Sesión iniciada correctamente.`);
-setShowSuccess(true);
-
-// Guardar tokens en localStorage
-localStorage.setItem('access_token', response.access_token);
-localStorage.setItem('refresh_token', response.refresh_token);
-
-// Limpiar formulario
-setFormData({
-    email: '',
-    password: ''
-});
-
-// En el bloque catch:
-if (error.status === 422 && error.data && error.data.details) {
-    // Errores de validación del servidor
-    setErrors(error.data.details);
-} else if (error.status === 0) {
-    // Error de conexión
-    setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
-} else {
-    // Error inesperado
-    setErrors({ general: error.data?.message || 'Ha ocurrido un error inesperado.' });
-}
-setShowSuccess(false);
-
-// Añadir en el JSX los mensajes:
-{showSuccess && (
-    <div className="success-message">
-        <div className="success-icon">✓</div>
-        <div className="success-content">
-            <strong>¡Sesión Iniciada!</strong>
-            <p>{successMessage}</p>
-            <small>Redirigiendo...</small>
-        </div>
-    </div>
-)}
-
-{errors.general && !showSuccess && (
-    <div className="error-message">
-        <div className="error-icon">⚠</div>
-        {errors.general}
-    </div>
-)}
 
 export default LoginForm;
