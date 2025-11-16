@@ -1,72 +1,19 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import RegisterForm from './components/auth/RegisterForm'
-import LoginForm from './components/auth/LoginForm'  // ← NUEVO IMPORT
-import './App.css'
+import React from 'react'
+import { Routes, Route, Navigate, Link } from 'react-router-dom'
+import SongsList from './pages/SongsList.jsx'
 
-function App() {
-    const [count, setCount] = useState(0)
-    const [currentView, setCurrentView] = useState('home') // 'home', 'register', 'login'
-
+export default function App() {
     return (
-        <>
-            {currentView === 'home' ? (
-                // PANTALLA INICIAL
-                <>
-                    <div>
-                        <a href="https://vite.dev" target="_blank">
-                            <img src={viteLogo} className="logo" alt="Vite logo" />
-                        </a>
-                        <a href="https://react.dev" target="_blank">
-                            <img src={reactLogo} className="logo react" alt="React logo" />
-                        </a>
-                    </div>
-                    <h1>Vite + React + NovaTune</h1>
-                    <div className="card">
-                        <button onClick={() => setCount((count) => count + 1)}>
-                            count is {count}
-                        </button>
-                        <button
-                            onClick={() => setCurrentView('register')}
-                            style={{marginLeft: '10px', background: '#007bff', color: 'white'}}
-                        >
-                            Registrarse
-                        </button>
-                        <button
-                            onClick={() => setCurrentView('login')}
-                            style={{marginLeft: '10px', background: '#28a745', color: 'white'}}
-                        >
-                            Iniciar Sesión
-                        </button>
-                        <p>
-                            Edit <code>src/App.jsx</code> and save to test HMR
-                        </p>
-                    </div>
-                    <p className="read-the-docs">
-                        Click on the Vite and React logos to learn more
-                    </p>
-                </>
-            ) : currentView === 'register' ? (
-                <RegisterForm
-                    onBack={() => setCurrentView('home')}
-                    onSuccess={(userData) => {
-                        console.log('Usuario registrado:', userData);
-                        setCurrentView('home');
-                    }}
-                />
-            ) : (
-                <LoginForm
-                    onBack={() => setCurrentView('home')}
-                    onSuccess={(userData) => {
-                        console.log('Usuario logueado:', userData);
-                        setCurrentView('home');
-                        // Aquí podrías actualizar el estado global de autenticación
-                    }}
-                />
-            )}
-        </>
+        <div style={{ padding: 24, background: '#111', minHeight: '100vh', color: '#eaeaea' }}>
+            <nav style={{ marginBottom: 16 }}>
+                <Link to="/songs">Canciones</Link>
+            </nav>
+
+            <Routes>
+                <Route path="/" element={<Navigate to="/songs" replace />} />
+                <Route path="/songs" element={<SongsList />} />
+                <Route path="*" element={<div>404</div>} />
+            </Routes>
+        </div>
     )
 }
-
-export default App
