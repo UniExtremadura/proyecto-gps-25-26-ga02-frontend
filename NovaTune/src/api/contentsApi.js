@@ -1,18 +1,16 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_CONTENT_BASE_URL || '/api/content'
+const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || '/api/content'
 
-// Trae los tracks del artista. ¡OJO con la barra final para evitar 301!
-export async function getTracksByArtist(artistUuid) {
-    if (!artistUuid) throw new Error('artistUuid requerido')
-    const url = `${BASE}/artists/${artistUuid}/tracks/` // barra final obligatoria
+// Devuelve las canciones (tracks) de un artista por UUID/ID
+export async function fetchArtistSongs(artistId) {
+    const url = `${CONTENT_BASE}/artists/${artistId}/tracks/` // proxy → 8001/api/v1/...
     const { data } = await axios.get(url)
-
-    const items = Array.isArray(data) ? data : data.items || data.results || []
-    return items.map((it) => ({
-        id: it.id ?? it.pk ?? it.track_id ?? it.uuid ?? String(it.title || it.name),
-        title: it.title ?? it.name ?? 'Untitled',
-        artistName: it.artist?.name ?? it.artist_name ?? '',
-        raw: it,
+    // API de contenidos devuelve { items:[...] , total:n }
+    const items = Array.isArray(data?.items) ? data.items : []
+    return items.map(t => ({
+        id: t.id,
+        title: t.title || t.name || 'untitled',
+        artist: t.artist?.name || 'unknown',
     }))
 }
