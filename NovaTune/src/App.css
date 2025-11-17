@@ -40,3 +40,56 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Añadir al final de App.css */
+.auth-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #38a169;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #38a169;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.welcome-message {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f0fff4;
+    border: 1px solid #9ae6b4;
+    border-radius: 6px;
+    color: #22543d;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Asegurar que el contenido no quede detrás de la barra fija */
+#root {
+    margin-top: 60px;
+}
