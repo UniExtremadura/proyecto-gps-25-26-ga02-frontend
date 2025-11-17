@@ -21,6 +21,9 @@ const LogoutButton = ({ onLogout }) => {
             // Enviar solicitud al backend
             await logoutUser();
 
+            // Actualizar el estado global
+            onLogout();
+
             // Redirigir al usuario
             setTimeout(() => {
                 window.location.href = '/';
