@@ -24,6 +24,9 @@ const LogoutButton = ({ onLogout }) => {
             // Actualizar el estado global
             onLogout();
 
+            // Mostrar confirmación
+            showMessage('Sesión cerrada correctamente', 'success');
+
             // Redirigir al usuario
             setTimeout(() => {
                 window.location.href = '/';
@@ -91,6 +94,14 @@ const LogoutButton = ({ onLogout }) => {
                 </div>
             )}
 
+            {/* Mensajes de confirmación/error */}
+            {message.text && (
+                <div className={`message ${message.type}`}>
+                    {message.type === 'success' && '✓ '}
+                    {message.type === 'error' && '⚠ '}
+                    {message.text}
+                </div>
+            )}
         </div>
     );
 };
