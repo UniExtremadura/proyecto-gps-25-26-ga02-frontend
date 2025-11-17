@@ -8,6 +8,7 @@ import { useAuth } from './hooks/useAuth'
 import './App.css'
 
 function App() {
+    const [count, setCount] = useState(0)
     const [currentView, setCurrentView] = useState('home')
     const { isAuthenticated, login, logout } = useAuth()
 
