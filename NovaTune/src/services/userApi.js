@@ -39,7 +39,6 @@ export const registerUser = async (userData) => {
     }
 };
 
-// (Guardamos espacio para futuras funciones como login, etc.)
 // Función para login de usuario
 export const loginUser = async (userData) => {
     try {
