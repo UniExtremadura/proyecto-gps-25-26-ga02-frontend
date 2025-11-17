@@ -21,6 +21,11 @@ const LogoutButton = ({ onLogout }) => {
             // Enviar solicitud al backend
             await logoutUser();
 
+            // Redirigir al usuario
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
 
