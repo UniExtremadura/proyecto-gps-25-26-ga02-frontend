@@ -11,11 +11,14 @@ import LogoutButton from "./components/auth/LogoutButton.jsx";
 import SongsList from "./pages/SongsList.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
+import {useCart } from "./context/CartContext.jsx";
+
 function App() {
     const [count, setCount] = useState(0);
     const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs'
 
     const { isAuthenticated, login, logout } = useAuth();
+    const { cartCount } = useCart();
 
     // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
     let mainContent;
@@ -35,6 +38,17 @@ function App() {
                 <h1>Vite + React + NovaTune</h1>
 
                 <div className="card">
+
+                    {isAuthenticated && (
+                        <div className="dashboard-buttons">
+                            <button onClick={() => setCurrentView("songs")}>
+                                Ver estadísticas
+                            </button>
+                            <button className="primary" onClick={() => setCurrentView("cart")}>
+                                🛒 Ir a mi Carrito
+                            </button>
+                        </div>
+                    )}
 
                     <p>
                         {isAuthenticated
