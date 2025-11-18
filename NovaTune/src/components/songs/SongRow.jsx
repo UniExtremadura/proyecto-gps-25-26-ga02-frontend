@@ -1,4 +1,4 @@
-import PlaysBadge from '../components/plays/PlaysBadge'; // ajusta la ruta si estás en otra carpeta
+import PlaysBadge from '../plays/PlaysBadge'; // ajusta la ruta si estás en otra carpeta
 
 export default function SongRow({ song }) {
     const songId = song.id ?? song.song_id ?? song._id; // coge el que exista
