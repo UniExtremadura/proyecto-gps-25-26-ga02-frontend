@@ -117,3 +117,92 @@ export const logoutUser = async () => {
         }
     }
 };
+
+// Función para refresh token
+export const refreshTokens = async (refreshToken) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw {
+                status: response.status,
+                data: data
+            };
+        }
+
+        return data;
+    } catch (error) {
+        if (error.status) {
+            throw error;
+        } else {
+            throw {
+                status: 0,
+                data: {
+                    code: 'NETWORK_ERROR',
+                    message: 'Error de conexión al refrescar tokens'
+                }
+            };
+        }
+    }
+};
+
+// Función para peticiones autenticadas con auto-refresh
+export const authFetch = async (url, options = {}) => {
+    let accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+    };
+
+    // Si hay access token, añadirlo al header
+    if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${url}`, {
+            ...options,
+            headers,
+        });
+
+        // Si el token expiró (401), intentar refresh
+        if (response.status === 401 && refreshToken) {
+            try {
+                const newTokens = await refreshTokens(refreshToken);
+
+                // Guardar nuevos tokens
+                localStorage.setItem('access_token', newTokens.access_token);
+                localStorage.setItem('refresh_token', newTokens.refresh_token);
+
+                // Reintentar la petición original con el nuevo token
+                headers['Authorization'] = `Bearer ${newTokens.access_token}`;
+                const retryResponse = await fetch(`${API_BASE_URL}${url}`, {
+                    ...options,
+                    headers,
+                });
+
+                return retryResponse;
+            } catch (refreshError) {
+                // Si el refresh falla, limpiar tokens y redirigir al login
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                window.location.href = '/login';
+                throw refreshError;
+            }
+        }
+
+        return response;
+    } catch (error) {
+        throw error;
+    }
+};
