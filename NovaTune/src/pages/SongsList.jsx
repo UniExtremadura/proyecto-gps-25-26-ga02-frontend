@@ -65,6 +65,7 @@ export default function SongsList() {
                         border: '1px solid #ccc',
                         background: '#fff',
                         cursor: 'pointer',
+                        color: 'black',
                     }}
                 >
                     Recargar
@@ -122,6 +123,7 @@ export default function SongsList() {
                                     border: '1px solid #eee',
                                     borderRadius: 10,
                                     background: '#fff',
+                                    color: 'black',
                                 }}
                             >
                                 <div>

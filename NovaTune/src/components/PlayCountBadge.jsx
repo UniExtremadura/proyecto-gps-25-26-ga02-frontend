@@ -61,6 +61,7 @@ export default function PlayCountBadge({ songId }) {
                 background: '#fff',
                 cursor: 'pointer',
                 fontSize: 12,
+                color: '#000', // texto negro sobre fondo claro
             }}
         >
             {label}
@@ -72,24 +73,33 @@ export default function PlayCountBadge({ songId }) {
     }
 
     if (status === 'loading') {
-        return <span style={{ fontSize: 12, color: '#555' }}>Consultando…</span>;
+        return (
+            <span
+                style={{
+                    fontSize: 12,
+                    color: '#000', // texto negro
+                }}
+            >
+                Consultando…
+            </span>
+        );
     }
 
     if (status === 'error') {
         return (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span
-            style={{
-                padding: '4px 8px',
-                borderRadius: 6,
-                background: '#ffecec',
-                color: '#b10000',
-                fontSize: 12,
-                border: '1px solid #ffb3b3',
-            }}
-        >
-          {errorMsg}
-        </span>
+                <span
+                    style={{
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        background: '#ffecec',
+                        color: '#000', // texto negro sobre fondo claro
+                        fontSize: 12,
+                        border: '1px solid #ffb3b3',
+                    }}
+                >
+                    {errorMsg}
+                </span>
                 {btn('Reintentar', consult, 'Volver a consultar')}
             </div>
         );
@@ -104,28 +114,32 @@ export default function PlayCountBadge({ songId }) {
                         padding: '4px 8px',
                         borderRadius: 6,
                         background: '#eef6ff',
-                        color: '#0b63b6',
+                        color: '#000', // texto negro
                         fontSize: 12,
                         border: '1px solid #cfe3ff',
                     }}
-                    title={wasNotFound ? 'La canción no existe aún en estadísticas (equivale a 0).' : undefined}
+                    title={
+                        wasNotFound
+                            ? 'La canción no existe aún en estadísticas (equivale a 0).'
+                            : undefined
+                    }
                 >
-          Sin reproducciones registradas
-        </span>
+                    Sin reproducciones registradas
+                </span>
             ) : (
                 <span
                     style={{
                         padding: '4px 8px',
                         borderRadius: 999,
                         background: '#e9f9ee',
-                        color: '#1a7f37',
+                        color: '#000', // texto negro
                         fontSize: 12,
                         border: '1px solid #b6e2c1',
                         fontWeight: 600,
                     }}
                 >
-          {plays} reproducciones
-        </span>
+                    {plays} reproducciones
+                </span>
             )}
 
             {/* Acciones */}

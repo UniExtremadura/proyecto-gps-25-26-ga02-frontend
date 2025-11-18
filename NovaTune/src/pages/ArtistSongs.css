@@ -20,3 +20,9 @@
 
 .as-right { display:flex; gap:8px; align-items:center; }
 .as-pill { padding:4px 8px; border-radius:999px; border:1px solid #e5e7eb; background:#f9fafb; color:#374151; font-size:.85rem; }
+/* Forzar texto negro en las filas de canciones de estadísticas */
+.song-row,
+.song-row * {
+    color: #000 !important;
+}
+

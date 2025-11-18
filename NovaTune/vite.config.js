@@ -15,7 +15,7 @@ export default defineConfig({
             },
             // Estadísticas -> 8000
             '/api/stats': {
-                target: 'http://127.0.0.1:8000',
+                target: 'http://127.0.0.1:8002',
                 changeOrigin: true,
                 rewrite: (p) => p.replace(/^\/api\/stats/, '/api/v1/stats'),
             },
