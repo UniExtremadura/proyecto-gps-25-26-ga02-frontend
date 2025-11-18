@@ -9,15 +9,21 @@ import LoginForm from "./components/auth/LoginForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
-import { useAuth } from "./hooks/useAuth.jsx";
+// --- NUEVOS IMPORTS ---
+import Cart from "./pages/Cart.jsx";        // <--- AÑADIDO
+import Checkout from "./pages/Checkout.jsx"; // <--- AÑADIDO
+// ----------------------
 
-import {useCart } from "./context/CartContext.jsx";
+import { useAuth } from "./hooks/useAuth.jsx";
+import { useCart } from "./context/CartContext.jsx";
 
 function App() {
-    const [count, setCount] = useState(0);
-    const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs'
+    // const [count, setCount] = useState(0); // Este estado ya no se usa
+    const [currentView, setCurrentView] = useState("home");
+    const [activeOrderId, setActiveOrderId] = useState(null); // <--- ESTADO PARA PASAR EL PEDIDO ID
 
     const { isAuthenticated, login, logout } = useAuth();
+    // ¡El hook useCart funciona porque App está envuelto en main.jsx!
     const { cartCount } = useCart();
 
     // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
@@ -39,17 +45,6 @@ function App() {
 
                 <div className="card">
 
-                    {isAuthenticated && (
-                        <div className="dashboard-buttons">
-                            <button onClick={() => setCurrentView("songs")}>
-                                Ver estadísticas
-                            </button>
-                            <button className="primary" onClick={() => setCurrentView("cart")}>
-                                🛒 Ir a mi Carrito
-                            </button>
-                        </div>
-                    )}
-
                     <p>
                         {isAuthenticated
                             ? "¡Bienvenido! Tu sesión está activa."
@@ -59,23 +54,22 @@ function App() {
                     {/* BOTONES DE LOGIN / REGISTRO CUANDO NO ESTÁ AUTENTICADO */}
                     {!isAuthenticated && (
                         <div className="auth-buttons">
-                            <button onClick={() => setCurrentView("register")}>
-                                Registrarse
-                            </button>
-                            <button onClick={() => setCurrentView("login")}>
-                                Iniciar sesión
-                            </button>
+                            <button onClick={() => setCurrentView("register")}>Registrarse</button>
+                            <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
                         </div>
                     )}
 
-                    {/* BOTÓN NUEVO: ACCESO DIRECTO A ESTADÍSTICAS CUANDO YA ESTÁ LOGUEADO */}
+                    {/* BOTONES DE ACCESO AL DASHBOARD Y CARRITO CUANDO ESTÁ LOGUEADO */}
                     {isAuthenticated && (
-                        <div className="stats-shortcut">
-                            <button
-                                className="primary-button"
-                                onClick={() => setCurrentView("songs")}
-                            >
+                        <div className="dashboard-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {/* Botón de Estadísticas existente */}
+                            <button className="primary-button" onClick={() => setCurrentView("songs")}>
                                 Ver estadísticas de mis canciones
+                            </button>
+
+                            {/* Botón de acceso a Carrito (Repetido, pero útil aquí también) */}
+                            <button className="primary" onClick={() => setCurrentView("cart")}>
+                                🛒 Ir a mi Carrito
                             </button>
                         </div>
                     )}
@@ -102,7 +96,7 @@ function App() {
                 onBack={() => setCurrentView("home")}
                 onSuccess={(userData) => {
                     console.log("Usuario logueado:", userData);
-                    //login(userData); // guardamos sesión en el AuthStore
+                    //login(userData);
                     setCurrentView("home");
                 }}
             />
@@ -111,38 +105,67 @@ function App() {
         // Vista del panel de estadísticas (lista de canciones)
         mainContent = (
             <div className="songs-view">
-                <button
-                    className="back-button"
-                    onClick={() => setCurrentView("home")}
-                >
+                <button className="back-button" onClick={() => setCurrentView("home")}>
                     ← Volver al inicio
                 </button>
-
                 <SongsList />
             </div>
         );
     }
+    // --- NUEVA VISTA: CARRITO (GA02-76) ---
+    else if (currentView === "cart") {
+        mainContent = (
+            <Cart
+                onBack={() => setCurrentView("home")}
+                onCheckout={(orderId) => {
+                    setActiveOrderId(orderId); // Guardamos el ID del pedido
+                    setCurrentView("checkout"); // Pasamos a la vista de pago
+                }}
+            />
+        );
+    }
+    // --- NUEVA VISTA: CHECKOUT (GA02-80) ---
+    else if (currentView === "checkout") {
+        mainContent = (
+            <Checkout
+                orderId={activeOrderId}
+                onBack={() => setCurrentView("cart")} // Volver al carrito
+                onPaymentSuccess={() => {
+                    alert("¡Pago realizado! Se ha generado su factura.");
+                    setCurrentView("home");
+                }}
+            />
+        );
+    }
 
-    // --------- BARRA SUPERIOR DE ESTADO DE AUTENTICACIÓN ----------
+
+    // --------- BARRA SUPERIOR DE ESTADO DE AUTENTICACIÓN (MINI-CARRITO) ----------
     return (
         <>
             <header className="auth-bar">
                 <div className="auth-status">
-          <span
-              className={
-                  "status-dot " + (isAuthenticated ? "status-on" : "status-off")
-              }
-          />
+                    <span className={"status-dot " + (isAuthenticated ? "status-on" : "status-off")}/>
                     {isAuthenticated ? "Sesión activa" : "No has iniciado sesión"}
                 </div>
 
                 {isAuthenticated && (
-                    <LogoutButton
-                        onLogout={() => {
-                            logout();
-                            setCurrentView("home");
-                        }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+
+                        {/* --- MINI-CARRITO (GA02-71) --- */}
+                        <button
+                            onClick={() => setCurrentView("cart")}
+                            style={{ fontSize: '0.9em', fontWeight: 'bold' }}
+                        >
+                            🛒 Carrito ({cartCount})
+                        </button>
+
+                        <LogoutButton
+                            onLogout={() => {
+                                logout();
+                                setCurrentView("home");
+                            }}
+                        />
+                    </div>
                 )}
             </header>
 

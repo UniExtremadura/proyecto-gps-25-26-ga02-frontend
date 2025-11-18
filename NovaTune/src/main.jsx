@@ -8,6 +8,7 @@ import App from './App.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
+        {/* AÑADIR CartProvider para que useCart funcione en toda la app */}
         <CartProvider>
             <App />
         </CartProvider>
