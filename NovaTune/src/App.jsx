@@ -88,7 +88,7 @@ function App() {
                 onBack={() => setCurrentView("home")}
                 onSuccess={(userData) => {
                     console.log("Usuario logueado:", userData);
-                    login(userData); // guardamos sesión en el AuthStore
+                    //login(userData); // guardamos sesión en el AuthStore
                     setCurrentView("home");
                 }}
             />
