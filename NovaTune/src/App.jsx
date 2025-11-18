@@ -1,151 +1,143 @@
 // NovaTune/src/App.jsx
-import { useState } from 'react'
-import { Routes, Route, Navigate, Link } from 'react-router-dom'
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "/vite.svg";
+import "./App.css";
 
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import RegisterForm from "./components/auth/RegisterForm.jsx";
+import LoginForm from "./components/auth/LoginForm.jsx";
+import LogoutButton from "./components/auth/LogoutButton.jsx";
 
-import SongsList from './pages/SongsList.jsx'
-import RegisterForm from './components/auth/RegisterForm'
-import LoginForm from './components/auth/LoginForm'
-import LogoutButton from './components/auth/LogoutButton'
-import { useAuth } from './hooks/useAuth'
+import SongsList from "./pages/SongsList.jsx";
+import { useAuth } from "./hooks/useAuth.jsx";
 
-import './App.css'
+function App() {
+    const [count, setCount] = useState(0);
+    const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs'
 
-// Pantalla 404 del ga02-28
-function NotFound() {
-    return (
-        <div style={{ padding: 24 }}>
-            <h2>404</h2>
-            <p>Ruta no encontrada.</p>
-            <p>
-                <Link to="/songs">Ir a Canciones</Link>
-            </p>
-        </div>
-    )
-}
+    const { isAuthenticated, login, logout } = useAuth();
 
-// Pantalla inicial + login / registro (código del develop)
-function Home() {
-    const [currentView, setCurrentView] = useState('home')
-    const { isAuthenticated, login } = useAuth()
+    // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
+    let mainContent;
 
-    // Vista de registro
-    if (currentView === 'register') {
-        return (
-            <RegisterForm
-                onBack={() => setCurrentView('home')}
-                onSuccess={(userData) => {
-                    console.log('Usuario registrado:', userData)
-                    setCurrentView('home')
-                }}
-            />
-        )
-    }
+    if (currentView === "home") {
+        mainContent = (
+            <div className="root-container">
+                <div className="logos-strip">
+                    <a href="https://vite.dev" target="_blank" rel="noreferrer">
+                        <img src={viteLogo} className="logo" alt="Vite logo" />
+                    </a>
+                    <a href="https://react.dev" target="_blank" rel="noreferrer">
+                        <img src={reactLogo} className="logo react" alt="React logo" />
+                    </a>
+                </div>
 
-    // Vista de login
-    if (currentView === 'login') {
-        return (
-            <LoginForm
-                onBack={() => setCurrentView('home')}
-                onSuccess={(userData) => {
-                    console.log('Usuario logueado:', userData)
-                    login(userData) // Actualizar estado de autenticación
-                    setCurrentView('home')
-                }}
-            />
-        )
-    }
+                <h1>Vite + React + NovaTune</h1>
 
-    // Vista "home" original del develop
-    return (
-        <>
-            <div>
-                <a href="https://vite.dev" target="_blank" rel="noreferrer">
-                    <img src={viteLogo} className="logo" alt="Vite logo" />
-                </a>
-                <a href="https://react.dev" target="_blank" rel="noreferrer">
-                    <img src={reactLogo} className="logo react" alt="React logo" />
-                </a>
-            </div>
+                <div className="card">
+                    <button onClick={() => setCount((c) => c + 1)}>
+                        count is {count}
+                    </button>
 
-            <h1>Vite + React + NovaTune</h1>
+                    <p>
+                        {isAuthenticated
+                            ? "¡Bienvenido! Tu sesión está activa."
+                            : "Inicia sesión o regístrate para acceder al panel del artista."}
+                    </p>
 
-            <div className="card">
-                {/* Botones según autenticación */}
-                {!isAuthenticated ? (
-                    <>
-                        <button
-                            onClick={() => setCurrentView('register')}
-                            style={{ marginLeft: '10px', background: '#007bff', color: 'white' }}
-                        >
-                            Registrarse
-                        </button>
-                        <button
-                            onClick={() => setCurrentView('login')}
-                            style={{ marginLeft: '10px', background: '#28a745', color: 'white' }}
-                        >
-                            Iniciar Sesión
-                        </button>
-                    </>
-                ) : (
-                    <div className="welcome-message">
-                        <p>¡Bienvenido! Tu sesión está activa.</p>
-                    </div>
-                )}
+                    {/* BOTONES DE LOGIN / REGISTRO CUANDO NO ESTÁ AUTENTICADO */}
+                    {!isAuthenticated && (
+                        <div className="auth-buttons">
+                            <button onClick={() => setCurrentView("register")}>
+                                Registrarse
+                            </button>
+                            <button onClick={() => setCurrentView("login")}>
+                                Iniciar sesión
+                            </button>
+                        </div>
+                    )}
 
-                <p>
-                    Edit <code>src/App.jsx</code> and save to test HMR
+                    {/* BOTÓN NUEVO: ACCESO DIRECTO A ESTADÍSTICAS CUANDO YA ESTÁ LOGUEADO */}
+                    {isAuthenticated && (
+                        <div className="stats-shortcut">
+                            <button
+                                className="primary-button"
+                                onClick={() => setCurrentView("songs")}
+                            >
+                                Ver estadísticas de mis canciones
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <p className="read-the-docs">
+                    Click on the Vite and React logos to learn more
                 </p>
             </div>
+        );
+    } else if (currentView === "register") {
+        mainContent = (
+            <RegisterForm
+                onBack={() => setCurrentView("home")}
+                onSuccess={(userData) => {
+                    console.log("Usuario registrado:", userData);
+                    setCurrentView("home");
+                }}
+            />
+        );
+    } else if (currentView === "login") {
+        mainContent = (
+            <LoginForm
+                onBack={() => setCurrentView("home")}
+                onSuccess={(userData) => {
+                    console.log("Usuario logueado:", userData);
+                    login(userData); // guardamos sesión en el AuthStore
+                    setCurrentView("home");
+                }}
+            />
+        );
+    } else if (currentView === "songs") {
+        // Vista del panel de estadísticas (lista de canciones)
+        mainContent = (
+            <div className="songs-view">
+                <button
+                    className="back-button"
+                    onClick={() => setCurrentView("home")}
+                >
+                    ← Volver al inicio
+                </button>
 
-            <p className="read-the-docs">
-                Click on the Vite and React logos to learn more
-            </p>
-        </>
-    )
-}
-
-export default function App() {
-    const { isAuthenticated, logout } = useAuth()
-
-    return (
-        <div style={{ minHeight: '100vh', background: '#111', color: '#ddd' }}>
-            {/* Barra de autenticación del develop */}
-            {isAuthenticated && (
-                <div className="auth-bar">
-                    <div className="auth-status">
-                        <span className="status-dot"></span>
-                        Sesión activa
-                    </div>
-                    <LogoutButton onLogout={logout} />
-                </div>
-            )}
-
-            {/* Navegación superior (inicio + canciones) */}
-            <div style={{ padding: '12px 16px' }}>
-                <Link to="/" style={{ color: '#8ab4f8', marginRight: 12 }}>
-                    Inicio
-                </Link>
-                {isAuthenticated && (
-                    <Link to="/songs" style={{ color: '#8ab4f8' }}>
-                        Canciones
-                    </Link>
-                )}
+                <SongsList />
             </div>
+        );
+    }
 
-            {/* Rutas */}
-            <Routes>
-                <Route path="/" element={<Home />} />
-                <Route
-                    path="/songs"
-                    element={
-                        isAuthenticated ? <SongsList /> : <Navigate to="/" replace />
-                    }
-                />
-                <Route path="*" element={<NotFound />} />
-            </Routes>
-        </div>
-    )
+    // --------- BARRA SUPERIOR DE ESTADO DE AUTENTICACIÓN ----------
+    return (
+        <>
+            <header className="auth-bar">
+                <div className="auth-status">
+          <span
+              className={
+                  "status-dot " + (isAuthenticated ? "status-on" : "status-off")
+              }
+          />
+                    {isAuthenticated ? "Sesión activa" : "No has iniciado sesión"}
+                </div>
+
+                {isAuthenticated && (
+                    <LogoutButton
+                        onLogout={() => {
+                            logout();
+                            setCurrentView("home");
+                        }}
+                    />
+                )}
+            </header>
+
+            {mainContent}
+        </>
+    );
 }
+
+export default App;
