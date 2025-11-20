@@ -17,7 +17,10 @@ export default function AlbumSalesBadge({ albumId }) {
 
         if (!res.ok) {
             setStatus("error");
-            setErrorMsg(res.error || "Error al cargar ventas del álbum.");
+            setErrorMsg(
+                res.error ||
+                "No se han podido cargar las ventas de este álbum desde el microservicio de estadísticas."
+            );
             return;
         }
 
@@ -66,7 +69,7 @@ export default function AlbumSalesBadge({ albumId }) {
     if (status === "loading") {
         return (
             <span style={{ fontSize: 12, color: "#555" }}>
-                Consultando ventas…
+                Consultando ventas del álbum…
             </span>
         );
     }

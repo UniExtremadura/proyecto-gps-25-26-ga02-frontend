@@ -70,11 +70,12 @@ export default function SongsList() {
             setSongs(items);
             setStatus("success");
         } catch (err) {
-            let msg = "Error cargando canciones.";
+            let msg = "No se han podido cargar las canciones del artista.";
             if (err.response) {
-                msg = `Error ${err.response.status} al cargar canciones.`;
+                msg = `El microservicio de contenidos respondió con código ${err.response.status} al cargar las canciones.`;
             } else if (err.request) {
-                msg = "No se puede conectar con el backend de contenidos.";
+                msg =
+                    "No se puede conectar con el microservicio de contenidos (comprueba que el backend de contenidos está levantado).";
             }
             setErrorMsg(msg);
             setStatus("error");
@@ -112,7 +113,9 @@ export default function SongsList() {
             setArtistOptionsLoaded(true);
         } catch (err) {
             console.error("Error cargando lista de artistas", err);
-            setArtistOptionsError("No se pudo cargar la lista de artistas.");
+            setArtistOptionsError(
+                "No se pudo cargar la lista de artistas desde el microservicio de contenidos."
+            );
         } finally {
             setIsFetchingArtists(false);
         }
@@ -224,7 +227,7 @@ export default function SongsList() {
                                 orders: 0,
                                 error:
                                     res.error ||
-                                    "Error al obtener ventas del álbum.",
+                                    "Error al obtener ventas del álbum desde el microservicio de estadísticas.",
                             };
                         }
 
@@ -277,7 +280,7 @@ export default function SongsList() {
                     setAlbumSummaries([]);
                     setSummaryStatus("error");
                     setSummaryError(
-                        "No se pudieron cargar las ventas totales por álbum."
+                        "No se pudieron cargar las ventas totales por álbum desde el microservicio de estadísticas."
                     );
                 }
             }
@@ -374,7 +377,9 @@ export default function SongsList() {
                 </div>
             )}
 
-            {status === "loading" && <p>Cargando canciones…</p>}
+            {status === "loading" && (
+                <p>Cargando canciones del artista…</p>
+            )}
 
             {status === "error" && (
                 <div
@@ -678,7 +683,10 @@ export default function SongsList() {
                             </h3>
 
                             {summaryStatus === "loading" && (
-                                <p>Calculando ventas por álbum…</p>
+                                <p>
+                                    Consultando ventas de álbumes en el
+                                    microservicio de estadísticas…
+                                </p>
                             )}
 
                             {summaryStatus === "error" && (
