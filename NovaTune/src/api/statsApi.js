@@ -71,3 +71,70 @@ export async function decrementSongPlay(songId) {
         return { ok: false, error: 'Error desconocido al decrementar.' };
     }
 }
+// src/api/statsApi.js
+
+const BASE_URL = "/api/stats"; // esto va al proxy de Vite (8002)
+
+/**
+ * Ventas por álbum.
+ * Llama a: GET /api/v1/stats/albums/<album_id>/sales
+ *
+ * @param {string} albumId
+ * @param {object} options
+ *   - includeRefunds: boolean (false por defecto)
+ *   - from: string ISO datetime
+ *   - to: string ISO datetime
+ *   - revenue: boolean (true para que devuelva revenue)
+ */
+// src/api/statsApi.js
+
+export async function fetchAlbumSales(
+    albumId,
+    { includeRefunds = false, from, to, revenue = true } = {}
+) {
+    const params = new URLSearchParams();
+
+    if (includeRefunds) params.set("include_refunds", "1");
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    if (revenue) params.set("revenue", "1");
+
+    const qs = params.toString();
+
+    // 🔧 AQUÍ EL CAMBIO IMPORTANTE
+    const url = `${STATS_BASE}/albums/${encodeURIComponent(albumId)}/sales${
+        qs ? `?${qs}` : ""
+    }`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            return {
+                ok: false,
+                status: res.status,
+                error: data.detail || "Error al obtener ventas de álbum.",
+            };
+        }
+
+        return {
+            ok: true,
+            status: res.status,
+            albumId: data.album_id,
+            orders: data.orders ?? 0,
+            units: data.sales ?? 0,
+            revenue: data.revenue ?? null,
+        };
+    } catch (err) {
+        console.error("fetchAlbumSales error", err);
+        return {
+            ok: false,
+            status: 0,
+            error: "No se pudo conectar con el servidor de estadísticas.",
+        };
+    }
+}
+
+
+
