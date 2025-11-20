@@ -1,5 +1,5 @@
 // src/pages/SongsList.jsx
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 
 import PlayCountBadge from '../components/PlayCountBadge';
@@ -7,16 +7,27 @@ import AlbumSalesBadge from '../components/AlbumSalesBadge';
 
 const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || '/api/content';
 
-// UUID demo (el mismo que ya usabas)
-const DEFAULT_ARTIST_ID = 'e48a5127-32a9-4875-a1e5-db0ba7ae7e78';
-
 export default function SongsList() {
-    const [artistId, setArtistId] = useState(DEFAULT_ARTIST_ID);
+    const [artistId, setArtistId] = useState(''); // 👈 sin UUID por defecto
     const [status, setStatus] = useState('idle'); // idle | loading | success | error | empty
     const [songs, setSongs] = useState([]);
     const [errorMsg, setErrorMsg] = useState('');
 
+    // Estado para las sugerencias de artistas (UUID + nombre)
+    const [artistOptions, setArtistOptions] = useState([]);
+    const [artistOptionsLoaded, setArtistOptionsLoaded] = useState(false);
+    const [artistOptionsError, setArtistOptionsError] = useState('');
+    const [isFetchingArtists, setIsFetchingArtists] = useState(false);
+
     const loadSongs = async (id) => {
+        // Si no hay ID, no hacemos nada
+        if (!id) {
+            setStatus('idle');
+            setSongs([]);
+            setErrorMsg('');
+            return;
+        }
+
         setStatus('loading');
         setErrorMsg('');
 
@@ -45,21 +56,70 @@ export default function SongsList() {
         }
     };
 
-    useEffect(() => {
-        loadSongs(artistId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Carga perezosa de la lista de artistas cuando el usuario enfoca el input
+    const fetchArtistOptions = async () => {
+        if (artistOptionsLoaded || isFetchingArtists) return;
+
+        setIsFetchingArtists(true);
+        setArtistOptionsError('');
+
+        try {
+            const url = `${CONTENT_BASE}/artists/`;
+            const { data } = await axios.get(url, { timeout: 5000 });
+
+            let items = [];
+
+            // Soportamos varias formas de respuesta: {items:[]}, {results:[]} o []
+            if (Array.isArray(data?.items)) {
+                items = data.items;
+            } else if (Array.isArray(data?.results)) {
+                items = data.results;
+            } else if (Array.isArray(data)) {
+                items = data;
+            }
+
+            const mapped = items.map((a) => ({
+                id: a.artist_id ?? a.id,
+                name: a.name ?? 'Artista sin nombre',
+            }));
+
+            setArtistOptions(mapped);
+            setArtistOptionsLoaded(true);
+        } catch (err) {
+            console.error('Error cargando lista de artistas', err);
+            setArtistOptionsError('No se pudo cargar la lista de artistas.');
+        } finally {
+            setIsFetchingArtists(false);
+        }
+    };
+
+    const handleArtistInputFocus = () => {
+        fetchArtistOptions();
+    };
+
+    const handleReloadClick = () => {
+        loadSongs(artistId.trim());
+    };
 
     return (
-        <div style={{ maxWidth: 900, margin: '32px auto', padding: '0 16px', color: 'white' }}>
+        <div
+            style={{
+                maxWidth: 900,
+                margin: '32px auto',
+                padding: '0 16px',
+                color: 'white',
+            }}
+        >
             <h1 style={{ marginBottom: 16 }}>Canciones del artista</h1>
 
-            {/* Filtro rápido por artista */}
+            {/* Filtro por artista (UUID con autocompletado) */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 <input
                     value={artistId}
                     onChange={(e) => setArtistId(e.target.value)}
+                    onFocus={handleArtistInputFocus}
                     placeholder="UUID del artista"
+                    list="artist-suggestions"
                     style={{
                         flex: 1,
                         padding: '8px 12px',
@@ -68,8 +128,20 @@ export default function SongsList() {
                         color: 'black',
                     }}
                 />
+
+                {/* Sugerencias de artistas (UUID + nombre) */}
+                <datalist id="artist-suggestions">
+                    {artistOptions.map((artist) => (
+                        <option
+                            key={artist.id}
+                            value={artist.id}
+                            label={`${artist.name} (${artist.id})`}
+                        />
+                    ))}
+                </datalist>
+
                 <button
-                    onClick={() => loadSongs(artistId)}
+                    onClick={handleReloadClick}
                     style={{
                         padding: '8px 12px',
                         borderRadius: 8,
@@ -82,6 +154,22 @@ export default function SongsList() {
                     Recargar
                 </button>
             </div>
+
+            {artistOptionsError && (
+                <div
+                    style={{
+                        background: '#fff7e6',
+                        border: '1px solid #ffd591',
+                        color: '#ad6800',
+                        padding: 8,
+                        borderRadius: 8,
+                        marginBottom: 8,
+                        fontSize: 12,
+                    }}
+                >
+                    {artistOptionsError}
+                </div>
+            )}
 
             {status === 'loading' && <p>Cargando canciones…</p>}
 
@@ -138,7 +226,9 @@ export default function SongsList() {
                             song.album?.title ??
                             null;
 
-                        const albumTitle = song.album?.title ?? (albumId ? String(albumId) : 'Álbum desconocido');
+                        const albumTitle =
+                            song.album?.title ??
+                            (albumId ? String(albumId) : 'Álbum desconocido');
 
                         return (
                             <li
@@ -148,7 +238,7 @@ export default function SongsList() {
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     gap: 12,
-                                    padding: '10px 12px',
+                                    padding: 12,
                                     border: '1px solid #eee',
                                     borderRadius: 10,
                                     background: '#fff',
@@ -156,21 +246,40 @@ export default function SongsList() {
                             >
                                 {/* Columna izquierda: info de canción + ventas por álbum */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, color: '#000' }}>{title}</div>
+                                    <div
+                                        style={{
+                                            fontWeight: 600,
+                                            color: '#000',
+                                        }}
+                                    >
+                                        {title}
+                                    </div>
 
                                     {albumId && (
                                         <div style={{ marginTop: 4 }}>
-                                            <div style={{ fontSize: 12, color: '#444', marginBottom: 2 }}>
+                                            <div
+                                                style={{
+                                                    fontSize: 12,
+                                                    color: '#444',
+                                                    marginBottom: 2,
+                                                }}
+                                            >
                                                 Álbum: {albumTitle}
                                             </div>
-                                            {/* >>>>>> AQUÍ SE MUESTRA LA VENTA DE ÁLBUMES <<<<<< */}
+                                            {/* Ventas del álbum */}
                                             <AlbumSalesBadge albumId={albumId} />
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Columna derecha: reproducciones de la canción */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 4,
+                                    }}
+                                >
                                     <PlayCountBadge songId={songId} />
                                 </div>
                             </li>

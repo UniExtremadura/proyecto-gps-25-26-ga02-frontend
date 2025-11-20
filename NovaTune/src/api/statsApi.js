@@ -86,6 +86,8 @@ const BASE_URL = "/api/stats"; // esto va al proxy de Vite (8002)
  *   - to: string ISO datetime
  *   - revenue: boolean (true para que devuelva revenue)
  */
+// src/api/statsApi.js
+
 export async function fetchAlbumSales(
     albumId,
     { includeRefunds = false, from, to, revenue = true } = {}
@@ -98,7 +100,9 @@ export async function fetchAlbumSales(
     if (revenue) params.set("revenue", "1");
 
     const qs = params.toString();
-    const url = `${BASE_URL}/albums/${encodeURIComponent(albumId)}/sales${
+
+    // 🔧 AQUÍ EL CAMBIO IMPORTANTE
+    const url = `${STATS_BASE}/albums/${encodeURIComponent(albumId)}/sales${
         qs ? `?${qs}` : ""
     }`;
 
@@ -131,5 +135,6 @@ export async function fetchAlbumSales(
         };
     }
 }
+
 
 

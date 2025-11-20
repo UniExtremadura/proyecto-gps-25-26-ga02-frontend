@@ -17,7 +17,7 @@ export default function AlbumSalesBadge({ albumId }) {
 
         if (!res.ok) {
             setStatus("error");
-            setErrorMsg(res.error || "Error consultando ventas.");
+            setErrorMsg(res.error || "Error al cargar ventas del álbum.");
             return;
         }
 
@@ -39,8 +39,8 @@ export default function AlbumSalesBadge({ albumId }) {
                 ...style,
             }}
         >
-      {children}
-    </span>
+            {children}
+        </span>
     );
 
     if (status === "idle") {
@@ -55,6 +55,7 @@ export default function AlbumSalesBadge({ albumId }) {
                     background: "#fff",
                     cursor: "pointer",
                     fontSize: 12,
+                    color: "#000",
                 }}
             >
                 Ver ventas del álbum
@@ -65,8 +66,8 @@ export default function AlbumSalesBadge({ albumId }) {
     if (status === "loading") {
         return (
             <span style={{ fontSize: 12, color: "#555" }}>
-        Consultando ventas…
-      </span>
+                Consultando ventas…
+            </span>
         );
     }
 
@@ -98,6 +99,7 @@ export default function AlbumSalesBadge({ albumId }) {
                         background: "#fff",
                         cursor: "pointer",
                         fontSize: 12,
+                        color: "#000",
                     }}
                 >
                     Reintentar
@@ -113,11 +115,6 @@ export default function AlbumSalesBadge({ albumId }) {
         revenue: null,
     };
 
-    const texto =
-        units === 0
-            ? "Sin ventas registradas"
-            : `${units} unidades vendidas (${orders} pedidos)`;
-
     return (
         <div
             style={{
@@ -129,19 +126,22 @@ export default function AlbumSalesBadge({ albumId }) {
         >
             {badgeBox(
                 {
-                    background: units === 0 ? "#eef6ff" : "#e9f9ee",
-                    color: units === 0 ? "#0b63b6" : "#1a7f37",
-                    borderColor: units === 0 ? "#cfe3ff" : "#b6e2c1",
-                    fontWeight: units === 0 ? 400 : 600,
+                    background: "#e9f9ee",
+                    color: "#1a7f37",
+                    borderColor: "#b6e5c7",
                 },
-                texto
+                `${units} unidades vendidas (${orders} pedidos)`
             )}
 
-            {revenue != null && (
-                <span style={{ fontSize: 12, color: "#333" }}>
-          Ingresos: <strong>{revenue} €</strong>
-        </span>
-            )}
+            {revenue != null &&
+                badgeBox(
+                    {
+                        background: "#f0f4ff",
+                        color: "#0b63b6",
+                        borderColor: "#c3d4ff",
+                    },
+                    `Ingresos: ${Number(revenue).toFixed(2)} €`
+                )}
 
             <button
                 type="button"
@@ -153,6 +153,7 @@ export default function AlbumSalesBadge({ albumId }) {
                     background: "#fff",
                     cursor: "pointer",
                     fontSize: 12,
+                    color: "#000",
                 }}
             >
                 Actualizar ventas
