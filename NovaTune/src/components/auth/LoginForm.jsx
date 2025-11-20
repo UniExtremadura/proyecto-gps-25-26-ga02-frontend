@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { loginUser } from '../../services/userApi.js';
+import { useAuth } from '../../hooks/useAuth';
 import './LoginForm.css';
 
 const LoginForm = ({ onBack, onSuccess }) => {
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -98,13 +100,16 @@ const LoginForm = ({ onBack, onSuccess }) => {
             setShowSuccess(true);
 
             // Guardar tokens en localStorage
-            localStorage.setItem('access_token', response.access_token);
-            localStorage.setItem('refresh_token', response.refresh_token);
+            //localStorage.setItem('access_token', response.access_token);
+            //localStorage.setItem('refresh_token', response.refresh_token);
 
-            console.log('Tokens guardados:', {
-                access_token: response.access_token,
-                refresh_token: response.refresh_token
-            });
+            //console.log('Tokens guardados:', {
+                //access_token: response.access_token,
+                //refresh_token: response.refresh_token
+            //});
+
+            //En lugar de guardar en local, usamos el hook
+            login(response);
 
             // Limpiar formulario
             setFormData({
