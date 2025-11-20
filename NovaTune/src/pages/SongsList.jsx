@@ -1,70 +1,83 @@
 // src/pages/SongsList.jsx
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-import PlayCountBadge from '../components/PlayCountBadge';
-import AlbumSalesBadge from '../components/AlbumSalesBadge';
-import { fetchAlbumSales } from '../api/statsApi';
+import PlayCountBadge from "../components/PlayCountBadge";
+import AlbumSalesBadge from "../components/AlbumSalesBadge";
+import { fetchAlbumSales } from "../api/statsApi";
 
-const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || '/api/content';
+const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || "/api/content";
 
 export default function SongsList() {
-    const [artistId, setArtistId] = useState(''); // sin UUID por defecto
-    const [status, setStatus] = useState('idle'); // idle | loading | success | error | empty
+    const [artistId, setArtistId] = useState(""); // sin UUID por defecto
+    const [status, setStatus] = useState("idle"); // idle | loading | success | error | empty
     const [songs, setSongs] = useState([]);
-    const [errorMsg, setErrorMsg] = useState('');
+    const [errorMsg, setErrorMsg] = useState("");
 
     // Sugerencias de artistas (UUID + nombre)
     const [artistOptions, setArtistOptions] = useState([]);
     const [artistOptionsLoaded, setArtistOptionsLoaded] = useState(false);
-    const [artistOptionsError, setArtistOptionsError] = useState('');
+    const [artistOptionsError, setArtistOptionsError] = useState("");
     const [isFetchingArtists, setIsFetchingArtists] = useState(false);
 
     // Resumen de ventas por álbum
     const [albumSummaries, setAlbumSummaries] = useState([]);
-    const [summaryStatus, setSummaryStatus] = useState('idle'); // idle | loading | success | error
-    const [summaryError, setSummaryError] = useState('');
+    const [albumOptions, setAlbumOptions] = useState([]); // para el <select> de álbum
+    const [summaryStatus, setSummaryStatus] = useState("idle"); // idle | loading | success | error
+    const [summaryError, setSummaryError] = useState("");
+
+    // Filtros de ventas
+    const [selectedAlbumId, setSelectedAlbumId] = useState("all"); // "all" o albumId concreto
+    const [includeRefunds, setIncludeRefunds] = useState(false);
+    const [onlyWithSales, setOnlyWithSales] = useState(false);
+    const [sortBy, setSortBy] = useState("units_desc"); // units_desc | units_asc | title_asc
 
     const loadSongs = async (id) => {
         const trimmed = id.trim();
         if (!trimmed) {
-            setStatus('idle');
+            setStatus("idle");
             setSongs([]);
-            setErrorMsg('');
+            setErrorMsg("");
+
             setAlbumSummaries([]);
-            setSummaryStatus('idle');
-            setSummaryError('');
+            setAlbumOptions([]);
+            setSummaryStatus("idle");
+            setSummaryError("");
             return;
         }
 
-        setStatus('loading');
-        setErrorMsg('');
+        setStatus("loading");
+        setErrorMsg("");
+
         setAlbumSummaries([]);
-        setSummaryStatus('idle');
-        setSummaryError('');
+        setAlbumOptions([]);
+        setSummaryStatus("idle");
+        setSummaryError("");
 
         try {
-            const url = `${CONTENT_BASE}/artists/${encodeURIComponent(trimmed)}/tracks/`;
+            const url = `${CONTENT_BASE}/artists/${encodeURIComponent(
+                trimmed
+            )}/tracks/`;
             const { data } = await axios.get(url, { timeout: 5000 });
 
             const items = Array.isArray(data?.items) ? data.items : [];
             if (items.length === 0) {
                 setSongs([]);
-                setStatus('empty');
+                setStatus("empty");
                 return;
             }
 
             setSongs(items);
-            setStatus('success');
+            setStatus("success");
         } catch (err) {
-            let msg = 'Error cargando canciones.';
+            let msg = "Error cargando canciones.";
             if (err.response) {
                 msg = `Error ${err.response.status} al cargar canciones.`;
             } else if (err.request) {
-                msg = 'No se puede conectar con el backend de contenidos.';
+                msg = "No se puede conectar con el backend de contenidos.";
             }
             setErrorMsg(msg);
-            setStatus('error');
+            setStatus("error");
         }
     };
 
@@ -73,7 +86,7 @@ export default function SongsList() {
         if (artistOptionsLoaded || isFetchingArtists) return;
 
         setIsFetchingArtists(true);
-        setArtistOptionsError('');
+        setArtistOptionsError("");
 
         try {
             const url = `${CONTENT_BASE}/artists/`;
@@ -92,14 +105,14 @@ export default function SongsList() {
 
             const mapped = items.map((a) => ({
                 id: a.artist_id ?? a.id,
-                name: a.name ?? 'Artista sin nombre',
+                name: a.name ?? "Artista sin nombre",
             }));
 
             setArtistOptions(mapped);
             setArtistOptionsLoaded(true);
         } catch (err) {
-            console.error('Error cargando lista de artistas', err);
-            setArtistOptionsError('No se pudo cargar la lista de artistas.');
+            console.error("Error cargando lista de artistas", err);
+            setArtistOptionsError("No se pudo cargar la lista de artistas.");
         } finally {
             setIsFetchingArtists(false);
         }
@@ -110,22 +123,31 @@ export default function SongsList() {
     };
 
     const handleReloadClick = () => {
+        // al cambiar de artista, reseteamos sólo el álbum seleccionado;
+        // el resto de filtros se mantienen (orden, reembolsos, etc.)
+        setSelectedAlbumId("all");
         loadSongs(artistId);
     };
 
-    // Cuando tenemos canciones cargadas, calculamos ventas totales por álbum
+    // Cuando tenemos canciones cargadas o cambian los filtros,
+    // calculamos ventas totales por álbum usando el microservicio de estadísticas.
     useEffect(() => {
-        if (status !== 'success') {
+        if (status !== "success") {
+            // si no hay canciones, limpiamos resumen
             setAlbumSummaries([]);
-            setSummaryStatus(status === 'empty' ? 'success' : 'idle');
-            setSummaryError('');
+            setAlbumOptions([]);
+            setSummaryStatus(
+                status === "empty" || status === "idle" ? "idle" : "error"
+            );
+            if (status !== "error") setSummaryError("");
             return;
         }
 
         if (!songs || songs.length === 0) {
             setAlbumSummaries([]);
-            setSummaryStatus('success');
-            setSummaryError('');
+            setAlbumOptions([]);
+            setSummaryStatus("idle");
+            setSummaryError("");
             return;
         }
 
@@ -143,7 +165,7 @@ export default function SongsList() {
 
             const albumTitle =
                 song.album?.title ??
-                (typeof albumId === 'string' ? albumId : String(albumId));
+                (typeof albumId === "string" ? albumId : String(albumId));
 
             if (!albumsMap.has(albumId)) {
                 albumsMap.set(albumId, {
@@ -154,24 +176,44 @@ export default function SongsList() {
         }
 
         const albums = Array.from(albumsMap.values());
+        setAlbumOptions(albums);
+
         if (albums.length === 0) {
             setAlbumSummaries([]);
-            setSummaryStatus('success');
-            setSummaryError('');
+            setSummaryStatus("idle");
+            setSummaryError("");
             return;
+        }
+
+        // Si el álbum seleccionado ya no existe (cambio de artista),
+        // reseteamos a "todos".
+        if (
+            selectedAlbumId !== "all" &&
+            !albums.some(
+                (a) => String(a.albumId) === String(selectedAlbumId)
+            )
+        ) {
+            setSelectedAlbumId("all");
+        }
+
+        let filteredAlbums = albums;
+        if (selectedAlbumId !== "all") {
+            filteredAlbums = albums.filter(
+                (a) => String(a.albumId) === String(selectedAlbumId)
+            );
         }
 
         let cancelled = false;
 
         const fetchSummaries = async () => {
-            setSummaryStatus('loading');
-            setSummaryError('');
+            setSummaryStatus("loading");
+            setSummaryError("");
 
             try {
                 const results = await Promise.all(
-                    albums.map(async (album) => {
+                    filteredAlbums.map(async (album) => {
                         const res = await fetchAlbumSales(album.albumId, {
-                            includeRefunds: false,
+                            includeRefunds,
                             revenue: false,
                         });
 
@@ -180,7 +222,9 @@ export default function SongsList() {
                                 ...album,
                                 units: 0,
                                 orders: 0,
-                                error: res.error || 'Error al obtener ventas.',
+                                error:
+                                    res.error ||
+                                    "Error al obtener ventas del álbum.",
                             };
                         }
 
@@ -193,16 +237,47 @@ export default function SongsList() {
                 );
 
                 if (!cancelled) {
-                    setAlbumSummaries(results);
-                    setSummaryStatus('success');
+                    // Post-procesado en frontend: filtro "sólo álbumes con ventas"
+                    let processed = results.slice();
+
+                    if (onlyWithSales) {
+                        processed = processed.filter(
+                            (a) =>
+                                (a.units ?? 0) > 0 ||
+                                (a.orders ?? 0) > 0
+                        );
+                    }
+
+                    // Ordenación
+                    processed.sort((a, b) => {
+                        const ua = a.units ?? 0;
+                        const ub = b.units ?? 0;
+                        const ta = a.albumTitle?.toLowerCase() ?? "";
+                        const tb = b.albumTitle?.toLowerCase() ?? "";
+
+                        switch (sortBy) {
+                            case "units_asc":
+                                return ua - ub;
+                            case "title_asc":
+                                if (ta < tb) return -1;
+                                if (ta > tb) return 1;
+                                return 0;
+                            case "units_desc":
+                            default:
+                                return ub - ua;
+                        }
+                    });
+
+                    setAlbumSummaries(processed);
+                    setSummaryStatus("success");
                 }
             } catch (err) {
-                console.error('Error obteniendo ventas por álbum', err);
+                console.error("Error obteniendo ventas por álbum", err);
                 if (!cancelled) {
                     setAlbumSummaries([]);
-                    setSummaryStatus('error');
+                    setSummaryStatus("error");
                     setSummaryError(
-                        'No se pudieron cargar las ventas totales por álbum.'
+                        "No se pudieron cargar las ventas totales por álbum."
                     );
                 }
             }
@@ -213,21 +288,35 @@ export default function SongsList() {
         return () => {
             cancelled = true;
         };
-    }, [status, songs]);
+    }, [
+        status,
+        songs,
+        selectedAlbumId,
+        includeRefunds,
+        onlyWithSales,
+        sortBy,
+    ]);
 
     return (
         <div
             style={{
-                maxWidth: 900,
-                margin: '32px auto',
-                padding: '0 16px',
-                color: 'white',
+                maxWidth: 1100,
+                margin: "32px auto",
+                padding: "0 16px",
+                color: "white",
             }}
         >
             <h1 style={{ marginBottom: 16 }}>Canciones del artista</h1>
 
-            {/* Filtro por artista (UUID con autocompletado) */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {/* Fila superior: selección de artista */}
+            <div
+                style={{
+                    display: "flex",
+                    gap: 8,
+                    marginBottom: 16,
+                    alignItems: "center",
+                }}
+            >
                 <input
                     value={artistId}
                     onChange={(e) => setArtistId(e.target.value)}
@@ -236,10 +325,10 @@ export default function SongsList() {
                     list="artist-suggestions"
                     style={{
                         flex: 1,
-                        padding: '8px 12px',
+                        padding: "8px 12px",
                         borderRadius: 8,
-                        border: '1px solid #ddd',
-                        color: 'black',
+                        border: "1px solid #ddd",
+                        color: "black",
                     }}
                 />
 
@@ -257,12 +346,12 @@ export default function SongsList() {
                 <button
                     onClick={handleReloadClick}
                     style={{
-                        padding: '8px 12px',
+                        padding: "8px 12px",
                         borderRadius: 8,
-                        border: '1px solid #ccc',
-                        background: '#fff',
-                        cursor: 'pointer',
-                        color: 'black',
+                        border: "1px solid #ccc",
+                        background: "#fff",
+                        cursor: "pointer",
+                        color: "black",
                     }}
                 >
                     Recargar
@@ -272,9 +361,9 @@ export default function SongsList() {
             {artistOptionsError && (
                 <div
                     style={{
-                        background: '#fff7e6',
-                        border: '1px solid #ffd591',
-                        color: '#ad6800',
+                        background: "#fff7e6",
+                        border: "1px solid #ffd591",
+                        color: "#ad6800",
                         padding: 8,
                         borderRadius: 8,
                         marginBottom: 8,
@@ -285,14 +374,14 @@ export default function SongsList() {
                 </div>
             )}
 
-            {status === 'loading' && <p>Cargando canciones…</p>}
+            {status === "loading" && <p>Cargando canciones…</p>}
 
-            {status === 'error' && (
+            {status === "error" && (
                 <div
                     style={{
-                        background: '#fff7e6',
-                        border: '1px solid #ffd591',
-                        color: '#ad6800',
+                        background: "#fff7e6",
+                        border: "1px solid #ffd591",
+                        color: "#ad6800",
                         padding: 12,
                         borderRadius: 8,
                         marginBottom: 12,
@@ -302,12 +391,12 @@ export default function SongsList() {
                 </div>
             )}
 
-            {status === 'empty' && (
+            {status === "empty" && (
                 <div
                     style={{
-                        background: '#eef6ff',
-                        border: '1px solid #cfe3ff',
-                        color: '#0b63b6',
+                        background: "#eef6ff",
+                        border: "1px solid #cfe3ff",
+                        color: "#0b63b6",
                         padding: 12,
                         borderRadius: 8,
                         marginBottom: 12,
@@ -317,217 +406,396 @@ export default function SongsList() {
                 </div>
             )}
 
-            {status === 'success' && (
-                <>
-                    {/* Lista de canciones */}
-                    <ul
-                        style={{
-                            listStyle: 'none',
-                            padding: 0,
-                            margin: 0,
-                            display: 'grid',
-                            gap: 12,
-                        }}
-                    >
-                        {songs.map((song) => {
-                            const title =
-                                song.title ?? song.name ?? 'Sin título';
-                            // Para reproducciones seguimos usando el título como ID
-                            const songId = title;
+            {status === "success" && (
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0, 2fr) minmax(0, 3fr)",
+                        gap: 16,
+                        alignItems: "flex-start",
+                    }}
+                >
+                    {/* Columna izquierda: lista de canciones */}
+                    <div>
+                        <h2 style={{ marginBottom: 8, fontSize: 20 }}>
+                            Canciones y reproducciones
+                        </h2>
+                        <ul
+                            style={{
+                                listStyle: "none",
+                                padding: 0,
+                                margin: 0,
+                                display: "grid",
+                                gap: 12,
+                            }}
+                        >
+                            {songs.map((song) => {
+                                const title =
+                                    song.title ?? song.name ?? "Sin título";
+                                // Para reproducciones seguimos usando el título como ID
+                                const songId = title;
 
-                            // Intentamos sacar un albumId razonable
-                            const albumId =
-                                song.album_id ??
-                                song.album?.id ??
-                                song.album?.uuid ??
-                                song.album?.title ??
-                                null;
+                                // Intentamos sacar un albumId razonable
+                                const albumId =
+                                    song.album_id ??
+                                    song.album?.id ??
+                                    song.album?.uuid ??
+                                    song.album?.title ??
+                                    null;
 
-                            const albumTitle =
-                                song.album?.title ??
-                                (albumId
-                                    ? String(albumId)
-                                    : 'Álbum desconocido');
+                                const albumTitle =
+                                    song.album?.title ??
+                                    (albumId
+                                        ? String(albumId)
+                                        : "Álbum desconocido");
 
-                            return (
-                                <li
-                                    key={song.id ?? title}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: 12,
-                                        padding: 12,
-                                        border: '1px solid #eee',
-                                        borderRadius: 10,
-                                        background: '#fff',
-                                    }}
-                                >
-                                    {/* Izquierda: canción + ventas del álbum */}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                return (
+                                    <li
+                                        key={song.id ?? title}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            gap: 12,
+                                            padding: 12,
+                                            border: "1px solid #eee",
+                                            borderRadius: 10,
+                                            background: "#fff",
+                                        }}
+                                    >
+                                        {/* Izquierda: canción + ventas del álbum */}
                                         <div
                                             style={{
-                                                fontWeight: 600,
-                                                color: '#000',
+                                                flex: 1,
+                                                minWidth: 0,
                                             }}
                                         >
-                                            {title}
+                                            <div
+                                                style={{
+                                                    fontWeight: 600,
+                                                    color: "#000",
+                                                }}
+                                            >
+                                                {title}
+                                            </div>
+
+                                            {albumId && (
+                                                <div style={{ marginTop: 4 }}>
+                                                    <div
+                                                        style={{
+                                                            fontSize: 12,
+                                                            color: "#444",
+                                                            marginBottom: 2,
+                                                        }}
+                                                    >
+                                                        Álbum: {albumTitle}
+                                                    </div>
+                                                    <AlbumSalesBadge
+                                                        albumId={albumId}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {albumId && (
-                                            <div style={{ marginTop: 4 }}>
-                                                <div
-                                                    style={{
-                                                        fontSize: 12,
-                                                        color: '#444',
-                                                        marginBottom: 2,
-                                                    }}
-                                                >
-                                                    Álbum: {albumTitle}
-                                                </div>
-                                                <AlbumSalesBadge
-                                                    albumId={albumId}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
+                                        {/* Derecha: reproducciones */}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: 4,
+                                            }}
+                                        >
+                                            <PlayCountBadge songId={songId} />
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
 
-                                    {/* Derecha: reproducciones */}
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: 4,
-                                        }}
-                                    >
-                                        <PlayCountBadge songId={songId} />
-                                    </div>
-                                </li>
-                            );
-                        })}
-                    </ul>
-
-                    {/* Resumen de ventas totales por álbum */}
-                    <section style={{ marginTop: 24 }}>
-                        <h2 style={{ marginBottom: 8 }}>
-                            Ventas totales por álbum
+                    {/* Columna derecha: panel de ventas por álbum */}
+                    <div>
+                        <h2 style={{ marginBottom: 8, fontSize: 20 }}>
+                            Ventas de álbumes
                         </h2>
 
-                        {summaryStatus === 'loading' && (
-                            <p>Calculando ventas por álbum…</p>
-                        )}
-
-                        {summaryStatus === 'error' && (
-                            <div
+                        {/* Filtros de ventas */}
+                        <div
+                            style={{
+                                padding: 12,
+                                borderRadius: 10,
+                                background: "#222",
+                                border: "1px solid #444",
+                                marginBottom: 12,
+                            }}
+                        >
+                            <h3
                                 style={{
-                                    background: '#fff7e6',
-                                    border: '1px solid #ffd591',
-                                    color: '#ad6800',
-                                    padding: 12,
-                                    borderRadius: 8,
-                                    marginTop: 8,
+                                    margin: "0 0 8px 0",
+                                    fontSize: 16,
                                 }}
                             >
-                                {summaryError}
-                            </div>
-                        )}
-
-                        {summaryStatus === 'success' &&
-                            albumSummaries.length === 0 && (
-                                <p style={{ fontSize: 14 }}>
-                                    No se han encontrado álbumes asociados a
-                                    estas canciones.
-                                </p>
-                            )}
-
-                        {summaryStatus === 'success' &&
-                            albumSummaries.length > 0 && (
-                                <table
+                                Filtros de ventas
+                            </h3>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 8,
+                                    alignItems: "center",
+                                }}
+                            >
+                                {/* Filtro por álbum */}
+                                <select
+                                    value={selectedAlbumId}
+                                    onChange={(e) =>
+                                        setSelectedAlbumId(e.target.value)
+                                    }
                                     style={{
-                                        width: '100%',
-                                        borderCollapse: 'collapse',
-                                        marginTop: 8,
-                                        background: '#fff',
-                                        color: '#000',
-                                        borderRadius: 10,
-                                        overflow: 'hidden',
+                                        flex: "1 1 180px",
+                                        padding: "6px 8px",
+                                        borderRadius: 8,
+                                        border: "1px solid #ccc",
+                                        color: "#000",
                                     }}
                                 >
-                                    <thead>
-                                    <tr
+                                    <option value="all">
+                                        Todos los álbumes
+                                    </option>
+                                    {albumOptions.map((album) => (
+                                        <option
+                                            key={album.albumId}
+                                            value={album.albumId}
+                                        >
+                                            {album.albumTitle}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {/* Incluir reembolsos */}
+                                <label
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        fontSize: 13,
+                                        flex: "0 0 auto",
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={includeRefunds}
+                                        onChange={(e) =>
+                                            setIncludeRefunds(e.target.checked)
+                                        }
+                                    />
+                                    Incluir reembolsos
+                                </label>
+
+                                {/* Ordenación */}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        flex: "1 1 180px",
+                                    }}
+                                >
+                                    <span
                                         style={{
-                                            background: '#f5f5f5',
-                                            textAlign: 'left',
+                                            fontSize: 12,
                                         }}
                                     >
-                                        <th
-                                            style={{
-                                                padding: '8px 12px',
-                                                borderBottom:
-                                                    '1px solid #eee',
-                                            }}
-                                        >
-                                            Álbum
-                                        </th>
-                                        <th
-                                            style={{
-                                                padding: '8px 12px',
-                                                borderBottom:
-                                                    '1px solid #eee',
-                                                width: 140,
-                                            }}
-                                        >
-                                            Ventas (unidades)
-                                        </th>
-                                        <th
-                                            style={{
-                                                padding: '8px 12px',
-                                                borderBottom:
-                                                    '1px solid #eee',
-                                                width: 140,
-                                            }}
-                                        >
-                                            Pedidos
-                                        </th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {albumSummaries.map((album) => (
-                                        <tr key={album.albumId}>
-                                            <td
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    borderBottom:
-                                                        '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                {album.albumTitle}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    borderBottom:
-                                                        '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                {album.units}
-                                            </td>
-                                            <td
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    borderBottom:
-                                                        '1px solid #f0f0f0',
-                                                }}
-                                            >
-                                                {album.orders}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    </tbody>
-                                </table>
+                                        Ordenar por:
+                                    </span>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) =>
+                                            setSortBy(e.target.value)
+                                        }
+                                        style={{
+                                            flex: 1,
+                                            padding: "6px 8px",
+                                            borderRadius: 8,
+                                            border: "1px solid #ccc",
+                                            color: "#000",
+                                        }}
+                                    >
+                                        <option value="units_desc">
+                                            Unidades (descendente)
+                                        </option>
+                                        <option value="units_asc">
+                                            Unidades (ascendente)
+                                        </option>
+                                        <option value="title_asc">
+                                            Álbum (A-Z)
+                                        </option>
+                                    </select>
+                                </div>
+
+                                {/* Sólo álbumes con ventas */}
+                                <label
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        fontSize: 13,
+                                        flex: "0 0 auto",
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={onlyWithSales}
+                                        onChange={(e) =>
+                                            setOnlyWithSales(e.target.checked)
+                                        }
+                                    />
+                                    Sólo álbumes con ventas
+                                </label>
+                            </div>
+
+                            <p
+                                style={{
+                                    marginTop: 6,
+                                    fontSize: 11,
+                                    color: "#bbb",
+                                }}
+                            >
+                                Los filtros se aplican automáticamente al
+                                resumen de ventas de abajo.
+                            </p>
+                        </div>
+
+                        {/* Resumen de ventas totales por álbum */}
+                        <section>
+                            <h3
+                                style={{
+                                    marginBottom: 8,
+                                    fontSize: 16,
+                                }}
+                            >
+                                Ventas totales por álbum
+                            </h3>
+
+                            {summaryStatus === "loading" && (
+                                <p>Calculando ventas por álbum…</p>
                             )}
-                    </section>
-                </>
+
+                            {summaryStatus === "error" && (
+                                <div
+                                    style={{
+                                        background: "#fff7e6",
+                                        border: "1px solid #ffd591",
+                                        color: "#ad6800",
+                                        padding: 12,
+                                        borderRadius: 8,
+                                        marginTop: 8,
+                                    }}
+                                >
+                                    {summaryError}
+                                </div>
+                            )}
+
+                            {summaryStatus === "success" &&
+                                albumSummaries.length === 0 && (
+                                    <p style={{ fontSize: 14 }}>
+                                        No se han encontrado ventas para los
+                                        filtros seleccionados.
+                                    </p>
+                                )}
+
+                            {summaryStatus === "success" &&
+                                albumSummaries.length > 0 && (
+                                    <table
+                                        style={{
+                                            width: "100%",
+                                            borderCollapse: "collapse",
+                                            marginTop: 8,
+                                            background: "#fff",
+                                            color: "#000",
+                                            borderRadius: 10,
+                                            overflow: "hidden",
+                                        }}
+                                    >
+                                        <thead>
+                                        <tr
+                                            style={{
+                                                background: "#f5f5f5",
+                                                textAlign: "left",
+                                            }}
+                                        >
+                                            <th
+                                                style={{
+                                                    padding: "8px 12px",
+                                                    borderBottom:
+                                                        "1px solid #eee",
+                                                }}
+                                            >
+                                                Álbum
+                                            </th>
+                                            <th
+                                                style={{
+                                                    padding: "8px 12px",
+                                                    borderBottom:
+                                                        "1px solid #eee",
+                                                    width: 160,
+                                                }}
+                                            >
+                                                Ventas (unidades)
+                                            </th>
+                                            <th
+                                                style={{
+                                                    padding: "8px 12px",
+                                                    borderBottom:
+                                                        "1px solid #eee",
+                                                    width: 140,
+                                                }}
+                                            >
+                                                Pedidos
+                                            </th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {albumSummaries.map((album) => (
+                                            <tr key={album.albumId}>
+                                                <td
+                                                    style={{
+                                                        padding:
+                                                            "8px 12px",
+                                                        borderBottom:
+                                                            "1px solid #f0f0f0",
+                                                    }}
+                                                >
+                                                    {album.albumTitle}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        padding:
+                                                            "8px 12px",
+                                                        borderBottom:
+                                                            "1px solid #f0f0f0",
+                                                    }}
+                                                >
+                                                    {album.units}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        padding:
+                                                            "8px 12px",
+                                                        borderBottom:
+                                                            "1px solid #f0f0f0",
+                                                    }}
+                                                >
+                                                    {album.orders}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                        </section>
+                    </div>
+                </div>
             )}
         </div>
     );
