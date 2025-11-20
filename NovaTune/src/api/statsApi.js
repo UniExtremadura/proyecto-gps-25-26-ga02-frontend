@@ -136,5 +136,84 @@ export async function fetchAlbumSales(
     }
 }
 
+// src/api/statsApi.js (añadir al final)
+
+export async function fetchGlobalStats({
+                                           labelId,
+                                           from,
+                                           to,
+                                           groupBy = "artist",
+                                           includeRevenue = true,
+                                       } = {}) {
+    try {
+        const params = new URLSearchParams();
+
+        if (labelId) {
+            params.set("label_id", labelId);
+        }
+        if (from) {
+            params.set("from", from);
+        }
+        if (to) {
+            params.set("to", to);
+        }
+        if (groupBy) {
+            params.set("group_by", groupBy);
+        }
+        if (includeRevenue) {
+            params.set("revenue", "true");
+        }
+
+        let url = `${STATS_BASE}/global/`;
+        const qs = params.toString();
+        if (qs) {
+            url = `${url}?${qs}`;
+        }
+
+        // Autenticación: el endpoint de estadísticas globales requiere rol de discográfica
+        const token = localStorage.getItem("access_token");
+        const config = {
+            timeout: 7000,
+            headers: {},
+        };
+        if (token) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const { data } = await axios.get(url, config);
+
+        // Esperamos un payload del estilo:
+        // {
+        //   timeframe: { from, to },
+        //   plays: { total, valid },
+        //   sales: { orders, units, revenue? },
+        //   ratings: { count, average },
+        //   by_artist?: [ { artist_id, plays_total, ... } ]
+        // }
+        return {
+            ok: true,
+            data,
+        };
+    } catch (err) {
+        console.error("fetchGlobalStats error", err);
+
+        const status = err.response?.status ?? 0;
+        let msg = "No se pudo conectar con el servidor de estadísticas.";
+
+        if (status === 401) {
+            msg = "No estás autenticado. Inicia sesión para ver las estadísticas de discográfica.";
+        } else if (status === 403) {
+            msg = "No tienes permiso para ver las estadísticas globales (rol de discográfica requerido).";
+        } else if (status >= 500) {
+            msg = "El servidor de estadísticas ha devuelto un error interno.";
+        }
+
+        return {
+            ok: false,
+            status,
+            error: msg,
+        };
+    }
+}
 
 

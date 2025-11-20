@@ -9,11 +9,13 @@ import LoginForm from "./components/auth/LoginForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
+import LabelStatsDashboard from "./pages/LabelStatsDashboard.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 function App() {
+    // count se queda por si lo necesitas más adelante (plantilla de Vite)
     const [count, setCount] = useState(0);
-    const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs'
+    const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs' | 'label_stats'
 
     const { isAuthenticated, login, logout } = useAuth();
 
@@ -35,11 +37,10 @@ function App() {
                 <h1>Vite + React + NovaTune</h1>
 
                 <div className="card">
-
                     <p>
                         {isAuthenticated
                             ? "¡Bienvenido! Tu sesión está activa."
-                            : "Inicia sesión o regístrate para acceder al panel del artista."}
+                            : "Inicia sesión o regístrate para acceder al panel del artista y de la discográfica."}
                     </p>
 
                     {/* BOTONES DE LOGIN / REGISTRO CUANDO NO ESTÁ AUTENTICADO */}
@@ -54,15 +55,24 @@ function App() {
                         </div>
                     )}
 
-                    {/* BOTÓN NUEVO: ACCESO DIRECTO A ESTADÍSTICAS CUANDO YA ESTÁ LOGUEADO */}
+                    {/* ACCESOS DIRECTOS A LOS PANELES CUANDO YA ESTÁ LOGUEADO */}
                     {isAuthenticated && (
                         <div className="stats-shortcut">
-                            <button
-                                className="primary-button"
-                                onClick={() => setCurrentView("songs")}
-                            >
-                                Ver estadísticas de mis canciones
-                            </button>
+                            <p>Accede rápidamente a tus paneles de estadísticas:</p>
+                            <div className="stats-shortcut-buttons">
+                                <button
+                                    className="primary-button"
+                                    onClick={() => setCurrentView("songs")}
+                                >
+                                    Panel de artista
+                                </button>
+                                <button
+                                    className="secondary-button"
+                                    onClick={() => setCurrentView("label_stats")}
+                                >
+                                    Panel de discográfica
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -88,23 +98,32 @@ function App() {
                 onBack={() => setCurrentView("home")}
                 onSuccess={(userData) => {
                     console.log("Usuario logueado:", userData);
-                    //login(userData); // guardamos sesión en el AuthStore
+                    // guardamos sesión en el AuthStore
+                    login(userData);
                     setCurrentView("home");
                 }}
             />
         );
     } else if (currentView === "songs") {
-        // Vista del panel de estadísticas (lista de canciones)
+        // Vista del panel de estadísticas (lista de canciones del artista)
         mainContent = (
             <div className="songs-view">
-                <button
-                    className="back-button"
-                    onClick={() => setCurrentView("home")}
-                >
+                <button className="back-button" onClick={() => setCurrentView("home")}>
                     ← Volver al inicio
                 </button>
 
                 <SongsList />
+            </div>
+        );
+    } else if (currentView === "label_stats") {
+        // Vista del panel de estadísticas agregadas de la discográfica
+        mainContent = (
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+
+                <LabelStatsDashboard />
             </div>
         );
     }

@@ -93,3 +93,209 @@
 #root {
     margin-top: 60px;
 }
+
+/* === Panel de estadísticas de discográfica === */
+
+.label-stats-container {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    color: #f9fafb;
+}
+
+.label-stats-title {
+    font-size: 1.9rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.label-stats-subtitle {
+    text-align: center;
+    color: #9ca3af;
+    margin-bottom: 1.5rem;
+}
+
+.label-stats-filters-card {
+    background: #111827;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.filters-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #22d3ee;
+    margin-bottom: 0.75rem;
+}
+
+.filters-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.3fr) repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-item--wide {
+    min-width: 0;
+}
+
+.filter-item--button {
+    align-self: stretch;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.filter-label {
+    font-size: 0.85rem;
+    color: #d1d5db;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1px solid #374151;
+    background: #020617;
+    color: #f9fafb;
+    font-size: 0.9rem;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.3);
+}
+
+.filter-button {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.65rem;
+    border: none;
+    background: linear-gradient(135deg, #06b6d4, #0ea5e9);
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.05s ease, box-shadow 0.05s ease, opacity 0.1s ease;
+}
+
+.filter-button:hover {
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+}
+
+.filter-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.filter-button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Autocomplete */
+
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-list {
+    position: absolute;
+    z-index: 10;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.15rem;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #020617;
+    border-radius: 0.5rem;
+    border: 1px solid #111827;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.autocomplete-item {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.35rem;
+    cursor: pointer;
+}
+
+.autocomplete-item:hover {
+    background: rgba(34, 211, 238, 0.15);
+}
+
+.autocomplete-item-name {
+    font-weight: 500;
+}
+
+.autocomplete-item-extra {
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.filter-helper {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    word-break: break-all;
+}
+
+.filters-error {
+    margin-top: 0.75rem;
+    color: #f87171;
+    font-size: 0.9rem;
+}
+
+/* Resultados */
+
+.label-stats-results {
+    margin-top: 1.5rem;
+}
+
+.loading-text {
+    text-align: center;
+    color: #9ca3af;
+}
+
+.stats-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.9rem;
+}
+
+.stats-card {
+    background: #020617;
+    border-radius: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #111827;
+}
+
+.stats-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.stats-main-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
+}
+
+.stats-secondary {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
