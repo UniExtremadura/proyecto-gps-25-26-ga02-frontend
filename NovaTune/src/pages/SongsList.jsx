@@ -1,11 +1,13 @@
 // src/pages/SongsList.jsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+
 import PlayCountBadge from '../components/PlayCountBadge';
+import AlbumSalesBadge from '../components/AlbumSalesBadge';
 
 const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || '/api/content';
 
-// Cambia este UUID si quieres otro artista (o pon un input, ya lo dejamos soportado abajo)
+// UUID demo (el mismo que ya usabas)
 const DEFAULT_ARTIST_ID = 'e48a5127-32a9-4875-a1e5-db0ba7ae7e78';
 
 export default function SongsList() {
@@ -17,15 +19,18 @@ export default function SongsList() {
     const loadSongs = async (id) => {
         setStatus('loading');
         setErrorMsg('');
+
         try {
             const url = `${CONTENT_BASE}/artists/${encodeURIComponent(id)}/tracks/`;
             const { data } = await axios.get(url, { timeout: 5000 });
+
             const items = Array.isArray(data?.items) ? data.items : [];
             if (items.length === 0) {
                 setSongs([]);
                 setStatus('empty');
                 return;
             }
+
             setSongs(items);
             setStatus('success');
         } catch (err) {
@@ -46,7 +51,7 @@ export default function SongsList() {
     }, []);
 
     return (
-        <div style={{ maxWidth: 900, margin: '32px auto', padding: '0 16px' }}>
+        <div style={{ maxWidth: 900, margin: '32px auto', padding: '0 16px', color: 'white' }}>
             <h1 style={{ marginBottom: 16 }}>Canciones del artista</h1>
 
             {/* Filtro rápido por artista */}
@@ -55,7 +60,13 @@ export default function SongsList() {
                     value={artistId}
                     onChange={(e) => setArtistId(e.target.value)}
                     placeholder="UUID del artista"
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd' }}
+                    style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #ddd',
+                        color: 'black',
+                    }}
                 />
                 <button
                     onClick={() => loadSongs(artistId)}
@@ -105,11 +116,29 @@ export default function SongsList() {
             )}
 
             {status === 'success' && (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12 }}>
+                <ul
+                    style={{
+                        listStyle: 'none',
+                        padding: 0,
+                        margin: 0,
+                        display: 'grid',
+                        gap: 12,
+                    }}
+                >
                     {songs.map((song) => {
                         const title = song.title ?? song.name ?? 'Sin título';
-                        // Usamos el title como songId para stats (según tus datos de demo)
+                        // Para estadísticas de reproducciones seguimos usando el título como ID
                         const songId = title;
+
+                        // Intentamos sacar un albumId razonable probando varios campos
+                        const albumId =
+                            song.album_id ??
+                            song.album?.id ??
+                            song.album?.uuid ??
+                            song.album?.title ??
+                            null;
+
+                        const albumTitle = song.album?.title ?? (albumId ? String(albumId) : 'Álbum desconocido');
 
                         return (
                             <li
@@ -123,19 +152,27 @@ export default function SongsList() {
                                     border: '1px solid #eee',
                                     borderRadius: 10,
                                     background: '#fff',
-                                    color: 'black',
                                 }}
                             >
-                                <div>
-                                    <div style={{ fontWeight: 600 }}>{title}</div>
-                                    {song.album?.title && (
-                                        <div style={{ fontSize: 12, color: '#666' }}>
-                                            Álbum: {song.album.title}
+                                {/* Columna izquierda: info de canción + ventas por álbum */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 600, color: '#000' }}>{title}</div>
+
+                                    {albumId && (
+                                        <div style={{ marginTop: 4 }}>
+                                            <div style={{ fontSize: 12, color: '#444', marginBottom: 2 }}>
+                                                Álbum: {albumTitle}
+                                            </div>
+                                            {/* >>>>>> AQUÍ SE MUESTRA LA VENTA DE ÁLBUMES <<<<<< */}
+                                            <AlbumSalesBadge albumId={albumId} />
                                         </div>
                                     )}
                                 </div>
-                                {/* Aquí está el badge con manejo de errores / sin datos */}
-                                <PlayCountBadge songId={songId} />
+
+                                {/* Columna derecha: reproducciones de la canción */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    <PlayCountBadge songId={songId} />
+                                </div>
                             </li>
                         );
                     })}
