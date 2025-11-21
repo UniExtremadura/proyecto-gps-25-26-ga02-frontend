@@ -265,6 +265,20 @@
     cursor: pointer;
 }
 
+
 .filter-field--wide {
     flex: 1;
+}
+
+/* Scrollable card inner area, hide native scrollbar but keep scrolling */
+.card-scroll {
+    max-height: 340px;
+    overflow-y: auto;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+.card-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
 }

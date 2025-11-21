@@ -1,5 +1,6 @@
 // NovaTune/src/pages/LabelStatsDashboard.jsx
 import { useEffect, useState } from "react";
+import ArtistCompareCharts from "../components/ArtistCompareCharts";
 
 const DEFAULT_AVATAR = "https://static.vecteezy.com/system/resources/previews/036/280/651/original/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-illustration-vector.jpg";
 
@@ -110,44 +111,51 @@ function LabelStatsDashboard() {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await fetch(
-                    `${API_STATS_BASE}/stats/artists/ratings?limit=20&sort=average&enrich=1`,
-                    { headers: ROLE_HEADER }
-                );
-                if (!res.ok) {
-                    throw new Error(`Error ${res.status}`);
-                }
-                const data = await res.json();
-                const items = data.items || [];
-                setTopRatedArtists(items);
 
-                // If backend didn't return enriched artist metadata, fetch it from contenidos
-                const missingIds = items.filter(i => !i.artist && i.artist_id).map(i => i.artist_id);
-                if (missingIds.length) {
-                    try {
-                        const ids = missingIds.join(",");
-                        const r2 = await fetch(`${API_CONTENT_BASE}/artists?ids=${ids}`);
-                        if (r2.ok) {
-                            const artistsResp = await r2.json();
-                            const artistsArr = Array.isArray(artistsResp) ? artistsResp : (artistsResp.items || []);
-                            const meta = {};
-                            artistsArr.forEach(a => {
-                                if (a) {
-                                    const key = a.id || a.artist_id || a.artistId || a.uuid || a.id_str;
-                                    if (key) {
-                                        // normalize to { id, name, ... }
-                                        meta[key] = { id: key, name: a.name, ...a };
-                                    }
-                                }
-                            });
-                            const merged = items.map(it => ({ ...it, artist: it.artist || meta[it.artist_id] }));
-                            setTopRatedArtists(merged);
-                        }
-                    } catch (err) {
-                        // non-fatal: leave items as-is
-                        console.error('Error fetching artist metadata:', err);
+                // 1) Fetch canonical artists from contenidos (same source SongsList uses)
+                const rArtists = await fetch(`${API_CONTENT_BASE}/artists/`);
+                if (!rArtists.ok) throw new Error(`Error fetching artists ${rArtists.status}`);
+                const artistsResp = await rArtists.json();
+                let artistsArr = [];
+                if (Array.isArray(artistsResp)) artistsArr = artistsResp;
+                else if (Array.isArray(artistsResp.items)) artistsArr = artistsResp.items;
+                else if (Array.isArray(artistsResp.results)) artistsArr = artistsResp.results;
+
+                const canonical = artistsArr.map(a => {
+                    const id = a.artist_id || a.id || a.uuid || a.artistId;
+                    return { id: String(id), name: a.name || a.title || id, meta: a };
+                });
+
+                // 2) Fetch ratings aggregation from stats service (all artists with ratings)
+                // We'll request a large limit so we can merge ratings for the canonical list.
+                const rRatings = await fetch(`${API_STATS_BASE}/stats/artists/ratings?limit=1000&sort=average`, { headers: ROLE_HEADER });
+                let ratingsMap = {};
+                if (rRatings.ok) {
+                    const rr = await rRatings.json();
+                    const rated = rr.items || [];
+                    for (const it of rated) {
+                        const aid = String(it.artist_id || it.id || it.artistId);
+                        ratingsMap[aid] = { ratings_count: it.ratings_count || it.count || 0, ratings_average: it.ratings_average || it.average || null };
                     }
                 }
+
+                // 3) Merge canonical artists with ratings (if any)
+                const merged = canonical.map(a => ({
+                    artist: { id: a.id, name: a.name, ...a.meta },
+                    artist_id: a.id,
+                    ratings_count: ratingsMap[a.id]?.ratings_count || 0,
+                    ratings_average: ratingsMap[a.id]?.ratings_average ?? null,
+                }));
+
+                // 4) sort by ratings_average desc then ratings_count
+                merged.sort((x, y) => {
+                    const ax = x.ratings_average ?? 0;
+                    const ay = y.ratings_average ?? 0;
+                    if (ay === ax) return (y.ratings_count || 0) - (x.ratings_count || 0);
+                    return ay - ax;
+                });
+
+                setTopRatedArtists(merged);
             } catch (err) {
                 console.error(err);
                 setError(err?.message || "Error cargando datos");
@@ -192,17 +200,30 @@ function LabelStatsDashboard() {
 
 
     return (
-        <div className="label-stats-root">
-            <header className="label-stats-header">
-                <h1>Estadísticas de ratings por artista</h1>
-                <p className="label-stats-subtitle">Panel que muestra el ranking de artistas por valoración media.</p>
-            </header>
+        <div className="label-stats-root" style={{ display: 'flex', justifyContent: 'center' }}>
+            {/* Background big card that should contain both info cards */}
+            <div style={{
+                background: '#081227',
+                borderRadius: 12,
+                padding: 32,
+                minWidth: 1280,
+                minHeight: 560,
+                boxShadow: '0 12px 30px rgba(2,6,23,0.6)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+            }}>
+                <header className="label-stats-header" style={{ width: '100%', textAlign: 'center' }}>
+                    <h1>Estadísticas de ratings por artista</h1>
+                    <p className="label-stats-subtitle">Panel que muestra el ranking de artistas por valoración media.</p>
+                </header>
 
-            <section className="label-stats-charts-grid">
-                <article className="chart-card">
+                <section className="label-stats-charts-grid" style={{ display: 'flex', justifyContent: 'center', gap: 24, alignItems: 'flex-start', margin: '24px 0', width: '100%' }}>
+                <article className="chart-card" style={{ minWidth: 540, minHeight: 420 }}>
                     <h2>Top artistas por valoración</h2>
                     <p className="chart-description">Lista de artistas ordenada por valoración media (rating).</p>
 
+                    <div className="card-scroll">
                     {loading ? (
                         <p className="chart-empty">Cargando...</p>
                     ) : error ? (
@@ -234,8 +255,9 @@ function LabelStatsDashboard() {
                             ))}
                         </ul>
                     )}
+                    </div>
                 </article>
-                <article className="chart-card artist-detail-card">
+                <article className="chart-card artist-detail-card" style={{ minWidth: 620, minHeight: 420 }}>
                     <h2 style={{ margin: 0 }}>{selectedArtist ? (selectedArtist.name || selectedArtist.id) : 'Recuadro de artista'}</h2>
                     {selectedArtist ? (
                         <div style={{ color: '#9ca3af', fontSize: '0.85rem', marginTop: '0.25rem' }}>{selectedArtist.id}</div>
@@ -244,18 +266,14 @@ function LabelStatsDashboard() {
                     )}
 
                     {selectedArtist ? (
+                        <div className="card-scroll">
                         <div className="artist-detail-body" style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginTop: '0.8rem' }}>
-                            {detailLoading ? (
-                                <div className="loading-text">Cargando...</div>
-                            ) : (
-                                // show selected artist image if available, otherwise show default avatar
-                                <img className="artist-detail-image" src={selectedArtist.image_url || DEFAULT_AVATAR} alt={selectedArtist.name || selectedArtist.id} />
-                            )}
-                            <div className="artist-detail-meta">
+                            <div className="artist-detail-meta" style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                                     <div />
                                     <div>
-                                        <button onClick={handleCloseDetail} style={{ background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>Cerrar</button>
+                                        {/* Replace close button with artist image positioned top-right */}
+                                        <img src={selectedArtist.image_url || DEFAULT_AVATAR} alt={selectedArtist.name || selectedArtist.id} style={{ width: 96, height: 96, borderRadius: 8, objectFit: 'cover' }} />
                                     </div>
                                 </div>
 
@@ -282,12 +300,19 @@ function LabelStatsDashboard() {
                                     </div>
                                 )}
                             </div>
+
+                            <div style={{flex: '0 0 420px'}}>
+                                <ArtistCompareCharts selected={selectedArtist} baseline={{ratings_count: (topRatedArtists && topRatedArtists.length ? Math.round(topRatedArtists.reduce((s,i)=>s+(i.ratings_count||0),0)/topRatedArtists.length) : 0), ratings_average: (topRatedArtists && topRatedArtists.length ? (topRatedArtists.reduce((s,i)=>s+Number(i.ratings_average||0),0)/topRatedArtists.length) : 0)}} />
+                            </div>
+                        </div>
                         </div>
                     ) : null}
                 </article>
             </section>
+            </div>
         </div>
     );
 }
 
 export default LabelStatsDashboard;
+

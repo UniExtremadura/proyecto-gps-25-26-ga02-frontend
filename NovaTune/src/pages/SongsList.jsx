@@ -320,34 +320,35 @@ export default function SongsList() {
                     alignItems: "center",
                 }}
             >
-                <input
+                {/* Dropdown selector with all artists */}
+                <select
                     value={artistId}
-                    onChange={(e) => setArtistId(e.target.value)}
+                    onChange={(e) => {
+                        const v = e.target.value;
+                        setArtistId(v);
+                        // load immediately when selecting an artist
+                        loadSongs(v);
+                    }}
                     onFocus={handleArtistInputFocus}
-                    placeholder="UUID del artista"
-                    list="artist-suggestions"
                     style={{
                         flex: 1,
                         padding: "8px 12px",
                         borderRadius: 8,
                         border: "1px solid #ddd",
                         color: "black",
+                        background: "#fff",
                     }}
-                />
-
-                {/* Sugerencias de artistas (UUID + nombre) */}
-                <datalist id="artist-suggestions">
+                >
+                    <option value="">-- Selecciona un artista --</option>
                     {artistOptions.map((artist) => (
-                        <option
-                            key={artist.id}
-                            value={artist.id}
-                            label={`${artist.name} (${artist.id})`}
-                        />
+                        <option key={artist.id} value={artist.id}>
+                            {artist.name} ({artist.id})
+                        </option>
                     ))}
-                </datalist>
+                </select>
 
                 <button
-                    onClick={handleReloadClick}
+                    onClick={() => loadSongs(artistId)}
                     style={{
                         padding: "8px 12px",
                         borderRadius: 8,
