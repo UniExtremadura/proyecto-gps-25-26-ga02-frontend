@@ -299,3 +299,219 @@
     font-size: 0.85rem;
     color: #9ca3af;
 }
+/* === Panel estadísticas globales discográfica === */
+
+.label-stats-root {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    background: #111827;
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    color: #e5e7eb;
+}
+
+.label-stats-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.label-stats-subtitle {
+    margin: 0;
+    color: #9ca3af;
+}
+
+.label-stats-timeframe {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.label-stats-message {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: rgba(55, 65, 81, 0.7);
+    font-size: 0.95rem;
+}
+
+.label-stats-message-error {
+    background: rgba(127, 29, 29, 0.9);
+    color: #fee2e2;
+}
+
+.label-stats-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.label-stats-kpi-card {
+    padding: 1rem 1.2rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, #111827, #020617);
+    border: 1px solid rgba(156, 163, 175, 0.25);
+}
+
+.label-stats-kpi-card h2 {
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kpi-main {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.kpi-sub {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.label-stats-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 2rem;
+}
+
+/* ensure chart cards inside the grid stretch to same height */
+.label-stats-charts-grid {
+    align-items: stretch;
+}
+
+.chart-card {
+    padding: 1rem 1.2rem;
+    border-radius: 0.9rem;
+    background: #020617;
+    border: 1px solid rgba(55, 65, 81, 0.8);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chart-card {
+    padding: 1rem 1.2rem;
+    border-radius: 0.9rem;
+    background: #020617;
+    border: 1px solid rgba(55, 65, 81, 0.8);
+}
+
+.chart-card h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    color: #22c55e; /* match green used in bars */
+    font-weight: 700;
+}
+
+.chart-description {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.chart-empty {
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.chart-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.chart-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 2fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.55rem;
+}
+
+.chart-row-labels {
+    min-width: 0;
+}
+
+.chart-row-main {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.chart-row-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+/* Estilo para mostrar el UUID junto al nombre del artista */
+.chart-row-uuid {
+    color: #6b7280; /* gris más oscuro */
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 400;
+}
+
+/* Artist detail card shown when clicking a row */
+.artist-detail-card {
+    margin-top: 0; /* bring it up to align with the left card */
+    /* rely on .chart-card for padding/background/border to match shape exactly */
+    display: block;
+}
+.artist-detail-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    background: #071027;
+    display: block;
+}
+.artist-detail-meta h3 {
+    margin: 0;
+}
+
+/* Rank badge for top list */
+.chart-row-rank {
+    color: #9ca3af;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-right: 0.35rem;
+}
+
+.chart-row-bar {
+    width: 100%;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: #111827;
+    overflow: hidden;
+}
+
+.chart-row-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #22c55e, #0ea5e9);
+    transition: width 0.4s ease-out;
+}
+
+.chart-row-value {
+    justify-self: flex-end;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+    .label-stats-root {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .chart-row {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) auto;
+    }
+}

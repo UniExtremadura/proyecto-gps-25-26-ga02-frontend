@@ -232,3 +232,39 @@
         width: 100%;
     }
 }
+
+/* Campo de filtro genérico: label + input/select */
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 180px;
+}
+
+.filter-field label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #8b949e;
+}
+
+/* ⬅️ Aquí añadimos el select */
+.filter-field input[type="date"],
+.filter-field input[type="text"],
+.filter-field select {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    border: 1px solid #30363d;
+    background-color: #0d1117;
+    color: #e6edf3;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.filter-field select {
+    cursor: pointer;
+}
+
+.filter-field--wide {
+    flex: 1;
+}
