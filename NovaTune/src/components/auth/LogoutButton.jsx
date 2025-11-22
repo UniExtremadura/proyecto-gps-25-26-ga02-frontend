@@ -35,7 +35,6 @@ const LogoutButton = ({ onLogout }) => {
             // Mostrar confirmación
             showMessage('Sesión cerrada correctamente', 'success');
 
-            // Redirigir al usuario, debería hacerlo el hook solo
             //setTimeout(() => {
                 //window.location.href = '/';
             //}, 1500);
@@ -45,13 +44,11 @@ const LogoutButton = ({ onLogout }) => {
 
             if (error.status === 422 || error.status === 401) {
                 // Token inválido - limpiar igualmente
-                // usamos el hook
                 logout();
                 if(onLogout){
                     onLogout();
                 }
                 showMessage('Sesión expirada', 'info');
-                //No debería hacer falta esto porque lo hace el hook
                 //setTimeout(() => window.location.href = '/', 1000);
             } else {
                 showMessage('Error al cerrar sesión. Intenta nuevamente.', 'error');
@@ -79,10 +76,8 @@ const LogoutButton = ({ onLogout }) => {
                     disabled={isLoading}
                 >
                     {isLoading ? (
-                        <span className="loading-spinner">⟳</span>
-                    ) : (
-                        <span className="logout-icon">🚪</span>
-                    )}
+                        <span className="loading-spinner">Cargando...</span>
+                    ) : null}
                     Cerrar Sesión
                 </button>
             ) : (
@@ -110,8 +105,6 @@ const LogoutButton = ({ onLogout }) => {
             {/* Mensajes de confirmación/error */}
             {message.text && (
                 <div className={`message ${message.type}`}>
-                    {message.type === 'success' && '✓ '}
-                    {message.type === 'error' && '⚠ '}
                     {message.text}
                 </div>
             )}
