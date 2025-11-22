@@ -1,12 +1,15 @@
 // components/auth/LogoutButton.jsx
 import React, { useState } from 'react';
 import { logoutUser } from '../../services/userApi';
+import { useAuth } from '../../hooks/useAuth';
 import './LogoutButton.css';
 
 const LogoutButton = ({ onLogout }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
+
+    const { logout } = useAuth();
 
     const showMessage = (text, type = 'info') => {
         setMessage({ text, type });
@@ -21,25 +24,35 @@ const LogoutButton = ({ onLogout }) => {
             // Enviar solicitud al backend
             await logoutUser();
 
+            // Actualizamos el estado global
+            logout();
+
             // Actualizar el estado global
-            onLogout();
+            if(onLogout){
+                onLogout();
+            }
 
             // Mostrar confirmación
             showMessage('Sesión cerrada correctamente', 'success');
 
-            // Redirigir al usuario
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
+            // Redirigir al usuario, debería hacerlo el hook solo
+            //setTimeout(() => {
+                //window.location.href = '/';
+            //}, 1500);
 
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
 
             if (error.status === 422 || error.status === 401) {
                 // Token inválido - limpiar igualmente
-                onLogout();
+                // usamos el hook
+                logout();
+                if(onLogout){
+                    onLogout();
+                }
                 showMessage('Sesión expirada', 'info');
-                setTimeout(() => window.location.href = '/', 1000);
+                //No debería hacer falta esto porque lo hace el hook
+                //setTimeout(() => window.location.href = '/', 1000);
             } else {
                 showMessage('Error al cerrar sesión. Intenta nuevamente.', 'error');
             }
