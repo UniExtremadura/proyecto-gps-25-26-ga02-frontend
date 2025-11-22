@@ -85,6 +85,13 @@ const ResetPasswordForm = ({ token, onBack, onSuccess }) => {
             }, 2000);
 
         } catch (error) {
+            if (error.status === 422 && error.data && error.data.details) {
+                setErrors(error.data.details);
+            } else if (error.status === 0) {
+                setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+            } else {
+                setErrors({ general: error.data?.message || 'Ha ocurrido un error al restablecer la contraseña.' });
+            }
             setShowSuccess(false);
         } finally {
             setIsLoading(false);

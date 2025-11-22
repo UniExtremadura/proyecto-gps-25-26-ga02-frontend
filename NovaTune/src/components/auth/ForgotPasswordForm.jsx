@@ -52,6 +52,15 @@ const ForgotPasswordForm = ({ onBack, onSuccess }) => {
             }, 1500);
 
         } catch (error) {
+            if (error.status === 422 && error.data && error.data.details) {
+                setErrors(error.data.details);
+            } else if (error.status === 400 && error.data.code === 'TOO_MANY_ATTEMPTS') {
+                setErrors({ general: 'Demasiados intentos. Solicita un nuevo enlace.' });
+            } else if (error.status === 0) {
+                setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+            } else {
+                setErrors({ general: error.data?.message || 'Ha ocurrido un error inesperado.' });
+            }
             setShowSuccess(false);
         } finally {
             setIsLoading(false);
