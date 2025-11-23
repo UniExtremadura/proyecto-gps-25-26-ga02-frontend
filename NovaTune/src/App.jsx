@@ -177,4 +177,5 @@ export default App;
 
 // TO-DO vista notificaciones
 // TO-DO datos albumes
+// TODO notificacion leida
 
