@@ -2,7 +2,7 @@ import { useEffect, useContext } from "react";
 import { cartApi, ordersApi } from "../api/paymentsApi.js";
 import { useCart } from "../context/CartContext.jsx";
 
-function Cart ({ onCheckout, onBack }) {
+export default function Cart ({ onCheckout, onBack }) {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
     const { refreshCart } = useCart();

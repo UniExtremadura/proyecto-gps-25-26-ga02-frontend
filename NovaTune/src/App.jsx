@@ -12,13 +12,15 @@ import LogoutButton from "./components/auth/LogoutButton.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
 import LabelStatsDashboard from "./pages/LabelStatsDashboard.jsx";
+import Cart from "./pages/Cart.jsx";
+import Checkout from "./pages/Checkout.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
-
 import {useCart } from "./context/CartContext.jsx";
 
 function App() {
     const [currentView, setCurrentView] = useState("home");
     const [resetToken, setResetToken] = useState("");
+    const [activeOrderId, setActiveOrderId] = useState(null);
     const { isAuthenticated, login, logout } = useAuth();
     const { cartCount } = useCart();
 
@@ -163,6 +165,27 @@ function App() {
                 <LabelStatsDashboard />
             </div>
         );
+    } else if (currentView === "cart") {
+        mainContent = (
+            <Cart
+                onBack={() => setCurrentView("home")}
+                onCheckout={(orderId) => {
+                    setActiveOrderId(orderId); // Guardamos el ID
+                    setCurrentView("checkout"); // Navegamos al pago
+                }}
+            />
+        );
+    } else if (currentView === "checkout") {
+        mainContent = (
+            <Checkout
+                orderId={activeOrderId}
+                onBack={() => setCurrentView("cart")}
+                onPaymentSuccess={() => {
+                    alert("¡Pago realizado con éxito! Recibirás tu factura en breve.");
+                    setCurrentView("home");
+                }}
+            />
+        );
     }
 
     return (
@@ -174,12 +197,21 @@ function App() {
                 </div>
 
                 {isAuthenticated && (
+                    <div style = {{ display: "flex", alignItems: "center", gap: "15px" }}>
+                        {/* --- MINI-CARRITO (GA02-71) --- */}
+                        <button
+                            onClick={() => setCurrentView("cart")}
+                            style={{ fontSize: '0.9em', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                            🛒 Carrito ({cartCount})
+                        </button>
                     <LogoutButton
                         onLogout={() => {
                             logout();
                             setCurrentView("home");
                         }}
                     />
+                    </div>
                 )}
             </header>
 
