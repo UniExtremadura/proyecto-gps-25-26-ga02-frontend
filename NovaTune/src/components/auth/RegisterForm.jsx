@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
-import { registerUser } from '../../services/userApi.js';
+import { registerUser, loginUser } from '../../services/userApi.js';
+import { useAuth } from '../../hooks/useAuth';
 import './RegisterForm.css';
 
 const RegisterForm = ({ onBack }) => {
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         username: '',
         email: '',
-        password: ''
+        password: '',
+        user_type: 'user'
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState(''); // ← NUEVO STATE para éxito
     const [showSuccess, setShowSuccess] = useState(false); // ← Controlar visibilidad del éxito
+
+    const userTypes = [
+        { value: 'user', label: 'Usuario' },
+        { value: 'artist', label: 'Artista' },
+        { value: 'label', label: 'Discográfica' },
+        { value: 'admin', label: 'Administrador' }
+    ];
 
     // Validación en tiempo real
     const validateField = (name, value) => {
@@ -46,6 +56,14 @@ const RegisterForm = ({ onBack }) => {
                     newErrors.password = 'Mínimo 8 caracteres';
                 } else {
                     delete newErrors.password;
+                }
+                break;
+
+            case 'user_type':
+                if (!value) {
+                    newErrors.user_type = 'Debes seleccionar un tipo de cuenta';
+                } else {
+                    delete newErrors.user_type;
                 }
                 break;
 
@@ -90,7 +108,8 @@ const RegisterForm = ({ onBack }) => {
         setTouched({
             username: true,
             email: true,
-            password: true
+            password: true,
+            user_type: true
         });
 
         // Si hay errores de validación, no enviar
@@ -108,14 +127,34 @@ const RegisterForm = ({ onBack }) => {
             const response = await registerUser(formData);
 
             // ÉXITO - Mostrar mensaje bonito
-            setSuccessMessage(`¡Cuenta creada exitosamente! Tu ID de usuario es: ${response.user_id}`);
-            setShowSuccess(true);
+            //setSuccessMessage(`¡Cuenta creada exitosamente! ¡Bienvenido ${response.username}!`);
+            //setShowSuccess(true);
+
+            try {
+                const loginResponse = await loginUser({
+                    email: formData.email,
+                    password: formData.password
+                });
+
+                // 🔄 USAR EL HOOK PARA GUARDAR TOKENS Y AUTENTICAR
+                login(loginResponse);
+
+                setSuccessMessage(`¡Cuenta creada exitosamente! ¡Bienvenido ${formData.username}!`);
+                setShowSuccess(true);
+                console.log('Login automático exitoso después del registro');
+
+            } catch (loginError) {
+                // Si el login automático falla, mostrar mensaje diferente
+                setSuccessMessage(`¡Cuenta creada exitosamente! Por favor, inicia sesión manualmente.`);
+                console.error('Error en login automático:', loginError);
+            }
 
             // Limpiar formulario
             setFormData({
                 username: '',
                 email: '',
-                password: ''
+                password: '',
+                user_type: 'user'
             });
 
             // REDIRECCIÓN AUTOMÁTICA después de 3 segundos
@@ -219,6 +258,26 @@ const RegisterForm = ({ onBack }) => {
                     {showError('password') && (
                         <span className="error-text">{errors.password}</span>
                     )}
+                </div>
+
+                {/* NUEVO: Select para tipo de usuario */}
+                <div className="form-group">
+                    <label htmlFor="user_type">Tipo de cuenta</label>
+                    <select
+                        id="user_type"
+                        name="user_type"
+                        value={formData.user_type}
+                        onChange={handleChange}
+                        className={showError('user_type') ? 'error' : ''}
+                        disabled={isLoading}
+                    >
+                        {userTypes.map(type => (
+                            <option key={type.value} value={type.value}>
+                                {type.label}
+                            </option>
+                        ))}
+                    </select>
+                    {showError('user_type') && <span className="error-text">{errors.user_type}</span>}
                 </div>
 
                 {/* ❌ ERROR GENERAL */}
