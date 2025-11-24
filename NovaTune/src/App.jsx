@@ -9,6 +9,7 @@ import LoginForm from "./components/auth/LoginForm.jsx";
 import ForgotPasswordForm from "./components/auth/ForgotPasswordForm.jsx";
 import ResetPasswordForm from "./components/auth/ResetPasswordForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
+import ProfilePage from "./components/profile/ProfilePage.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
 import LabelStatsDashboard from "./pages/LabelStatsDashboard.jsx";
@@ -17,7 +18,8 @@ import { useAuth } from "./hooks/useAuth.jsx";
 function App() {
     const [currentView, setCurrentView] = useState("home");
     const [resetToken, setResetToken] = useState("");
-    const { isAuthenticated, login, logout } = useAuth();
+    const { isAuthenticated, isLoading, login, logout } = useAuth();
+    const [count, setCount] = useState(0);
 
     const getTokenFromURL = () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -31,6 +33,21 @@ function App() {
             setCurrentView("reset-password");
         }
     }, []);
+
+    // Mostrar loading mientras verifica autenticación
+    if (isLoading) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                fontSize: '18px'
+            }}>
+                Verificando autenticación...
+            </div>
+        );
+    }
 
     let mainContent;
 
@@ -49,6 +66,10 @@ function App() {
                 <h1>Vite + React + NovaTune</h1>
 
                 <div className="card">
+                    <button onClick={() => setCount((count) => count + 1)}>
+                        count is {count}
+                    </button>
+
                     <p>
                         {isAuthenticated
                             ? "¡Bienvenido! Tu sesión está activa."
@@ -57,22 +78,41 @@ function App() {
 
                     {!isAuthenticated && (
                         <div className="auth-buttons">
-                            <button onClick={() => setCurrentView("register")}>Registrarse</button>
-                            <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
+                            <button
+                                onClick={() => setCurrentView("register")}
+                                className="auth-button"
+                            >
+                                Registrarse
+                            </button>
+                            <button
+                                onClick={() => setCurrentView("login")}
+                                className="auth-button"
+                            >
+                                Iniciar sesión
+                            </button>
                         </div>
                     )}
 
                     {isAuthenticated && (
-                        <div className="stats-shortcut">
-                            <p>Accede rápidamente a tus paneles de estadísticas:</p>
-                            <div className="stats-shortcut-buttons">
-                                <button className="primary-button" onClick={() => setCurrentView("songs")}>
-                                    Panel de artista
-                                </button>
-                                <button className="secondary-button" onClick={() => setCurrentView("label_stats")}>
-                                    Panel de discográfica
-                                </button>
-                            </div>
+                        <div className="authenticated-options">
+                            <button
+                                className="primary-button"
+                                onClick={() => setCurrentView("profile")}
+                            >
+                                Mi Perfil
+                            </button>
+                            <button
+                                className="primary-button"
+                                onClick={() => setCurrentView("songs")}
+                            >
+                                Panel de artista
+                            </button>
+                            <button
+                                className="secondary-button"
+                                onClick={() => setCurrentView("label_stats")}
+                            >
+                                Panel de discográfica
+                            </button>
                         </div>
                     )}
                 </div>
@@ -130,6 +170,12 @@ function App() {
                 }}
             />
         );
+    } else if (currentView === "profile") {
+        mainContent = (
+            <ProfilePage
+                onBack={() => setCurrentView("home")}
+            />
+        );
     } else if (currentView === "songs") {
         mainContent = (
             <div className="songs-view">
@@ -159,12 +205,20 @@ function App() {
                 </div>
 
                 {isAuthenticated && (
-                    <LogoutButton
-                        onLogout={() => {
-                            logout();
-                            setCurrentView("home");
-                        }}
-                    />
+                    <div className="auth-actions">
+                        <button
+                            className="profile-link"
+                            onClick={() => setCurrentView("profile")}
+                        >
+                            Mi Perfil
+                        </button>
+                        <LogoutButton
+                            onLogout={() => {
+                                logout();
+                                setCurrentView("home");
+                            }}
+                        />
+                    </div>
                 )}
             </header>
 

@@ -515,3 +515,141 @@
         grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) auto;
     }
 }
+
+/* 🔄 NUEVOS ESTILOS PARA LA INTEGRACIÓN DEL PERFIL */
+
+/* Botones de autenticación */
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.auth-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.auth-button:hover {
+    background: #0056b3;
+}
+
+.auth-button:last-child {
+    background: #28a745;
+}
+
+.auth-button:last-child:hover {
+    background: #218838;
+}
+
+/* Opciones para usuarios autenticados */
+.authenticated-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.primary-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.primary-button:hover {
+    background: #0056b3;
+}
+
+.primary-button:last-child {
+    background: #6f42c1;
+}
+
+.primary-button:last-child:hover {
+    background: #5a2d91;
+}
+
+/* Barra de autenticación mejorada */
+.auth-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-on {
+    background: #28a745;
+}
+
+.status-off {
+    background: #dc3545;
+}
+
+.auth-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.profile-link {
+    background: none;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.profile-link:hover {
+    background: #007bff;
+    color: white;
+}
+
+/* Vista de canciones */
+.songs-view {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.back-button {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.back-button:hover {
+    background: #545b62;
+}

@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { getUserProfile, updateUserProfile } from '../../services/userApi.js';
+import { getUserProfile, updateUserProfile } from '../../services/userApi';
 import { useAuth } from '../../hooks/useAuth';
 import './ProfilePage.css';
 
 const ProfilePage = ({ onBack }) => {
     const { isAuthenticated } = useAuth();
     const [profile, setProfile] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
 
-    // Form data para edición
+    // 🔄 Datos del formulario de edición
     const [formData, setFormData] = useState({
         alias: '',
         avatar_url: '',
@@ -32,11 +32,12 @@ const ProfilePage = ({ onBack }) => {
     }, [isAuthenticated]);
 
     const loadProfile = async () => {
-        setIsLoading(true);
         try {
+            setIsLoading(true);
             const userProfile = await getUserProfile();
             setProfile(userProfile);
-            // Preparar datos para el formulario
+
+            // Inicializar formulario con datos actuales
             setFormData({
                 alias: userProfile.alias || '',
                 avatar_url: userProfile.avatar_url || '',
@@ -61,7 +62,7 @@ const ProfilePage = ({ onBack }) => {
         setSuccessMessage('');
     };
 
-    const handleChange = (e) => {
+    const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -80,20 +81,24 @@ const ProfilePage = ({ onBack }) => {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
-        setIsSaving(true);
-        setErrors({});
-        setSuccessMessage('');
 
         try {
+            setIsSaving(true);
+            setErrors({});
+            setSuccessMessage('');
+
             const updatedProfile = await updateUserProfile(formData);
             setProfile(updatedProfile);
             setSuccessMessage('Perfil actualizado correctamente');
             setIsEditing(false);
 
-            // Limpiar mensaje después de 3 segundos
-            setTimeout(() => setSuccessMessage(''), 3000);
+            // Recargar después de un tiempo
+            setTimeout(() => {
+                setSuccessMessage('');
+            }, 3000);
+
         } catch (error) {
             console.error('Error actualizando perfil:', error);
             if (error.status === 422 && error.data && error.data.details) {
@@ -125,17 +130,6 @@ const ProfilePage = ({ onBack }) => {
         setSuccessMessage('');
     };
 
-    if (!isAuthenticated) {
-        return (
-            <div className="profile-container">
-                <button onClick={onBack} className="back-btn">← Volver</button>
-                <div className="error-message">
-                    Debes iniciar sesión para ver tu perfil
-                </div>
-            </div>
-        );
-    }
-
     if (isLoading) {
         return (
             <div className="profile-container">
@@ -149,9 +143,7 @@ const ProfilePage = ({ onBack }) => {
         return (
             <div className="profile-container">
                 <button onClick={onBack} className="back-btn">← Volver</button>
-                <div className="error-message">
-                    Error al cargar el perfil
-                </div>
+                <div className="error-message">No se pudo cargar el perfil</div>
             </div>
         );
     }
@@ -169,6 +161,7 @@ const ProfilePage = ({ onBack }) => {
                 )}
             </div>
 
+            {/* Mensaje de éxito */}
             {successMessage && (
                 <div className="success-message">
                     <div className="success-icon">✓</div>
@@ -176,6 +169,7 @@ const ProfilePage = ({ onBack }) => {
                 </div>
             )}
 
+            {/* Error general */}
             {errors.general && (
                 <div className="error-message">
                     <div className="error-icon">⚠</div>
@@ -185,7 +179,7 @@ const ProfilePage = ({ onBack }) => {
 
             {isEditing ? (
                 // MODO EDICIÓN
-                <form onSubmit={handleSubmit} className="profile-form">
+                <form onSubmit={handleSave} className="profile-form">
                     <div className="form-section">
                         <h3>Información Básica</h3>
 
@@ -195,7 +189,7 @@ const ProfilePage = ({ onBack }) => {
                                 type="text"
                                 name="alias"
                                 value={formData.alias}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                                 className={errors.alias ? 'error' : ''}
                             />
                             {errors.alias && <span className="error-text">{errors.alias}</span>}
@@ -207,7 +201,7 @@ const ProfilePage = ({ onBack }) => {
                                 type="url"
                                 name="avatar_url"
                                 value={formData.avatar_url}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                                 placeholder="https://ejemplo.com/avatar.jpg"
                             />
                         </div>
@@ -217,7 +211,7 @@ const ProfilePage = ({ onBack }) => {
                             <textarea
                                 name="bio"
                                 value={formData.bio}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                                 rows="4"
                                 placeholder="Cuéntanos sobre ti..."
                             />
@@ -229,7 +223,7 @@ const ProfilePage = ({ onBack }) => {
                                 type="text"
                                 name="country"
                                 value={formData.country}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                             />
                         </div>
                     </div>
@@ -241,7 +235,7 @@ const ProfilePage = ({ onBack }) => {
                             <label>Idioma</label>
                             <select
                                 name="language"
-                                value={formData.preferences.language}
+                                value={formData.preferences.language || 'es'}
                                 onChange={handlePreferencesChange}
                             >
                                 <option value="es">Español</option>
@@ -255,7 +249,7 @@ const ProfilePage = ({ onBack }) => {
                                 <input
                                     type="checkbox"
                                     name="explicit_filter"
-                                    checked={formData.preferences.explicit_filter}
+                                    checked={formData.preferences.explicit_filter || false}
                                     onChange={handlePreferencesChange}
                                 />
                                 Filtrar contenido explícito
@@ -264,11 +258,20 @@ const ProfilePage = ({ onBack }) => {
                     </div>
 
                     <div className="form-actions">
-                        <button type="submit" disabled={isSaving} className="save-btn">
-                            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-                        </button>
-                        <button type="button" onClick={handleCancel} className="cancel-btn">
+                        <button
+                            type="button"
+                            onClick={handleCancel}
+                            className="cancel-btn"
+                            disabled={isSaving}
+                        >
                             Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            className="save-btn"
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                         </button>
                     </div>
                 </form>
@@ -279,16 +282,20 @@ const ProfilePage = ({ onBack }) => {
                         <h3>Información de la Cuenta</h3>
                         <div className="profile-info">
                             <div className="info-item">
-                                <strong>ID de Usuario:</strong> {profile.user_id}
+                                <strong>ID de Usuario:</strong>
+                                <span>{profile.user_id}</span>
                             </div>
                             <div className="info-item">
-                                <strong>Email:</strong> {profile.email}
+                                <strong>Email:</strong>
+                                <span>{profile.email}</span>
                             </div>
                             <div className="info-item">
-                                <strong>Nombre de Usuario:</strong> {profile.username}
+                                <strong>Nombre de Usuario:</strong>
+                                <span>{profile.username}</span>
                             </div>
                             <div className="info-item">
-                                <strong>Tipo de Cuenta:</strong> {profile.user_type_display}
+                                <strong>Tipo de Cuenta:</strong>
+                                <span className="user-type-badge">{profile.user_type_display}</span>
                             </div>
                         </div>
                     </div>
@@ -297,19 +304,20 @@ const ProfilePage = ({ onBack }) => {
                         <h3>Perfil Público</h3>
                         <div className="profile-info">
                             <div className="info-item">
-                                <strong>Alias:</strong> {profile.alias || 'No establecido'}
-                            </div>
-                            {profile.avatar_url && (
-                                <div className="info-item">
-                                    <strong>Avatar:</strong>
-                                    <img src={profile.avatar_url} alt="Avatar" className="avatar-preview" />
-                                </div>
-                            )}
-                            <div className="info-item">
-                                <strong>Biografía:</strong> {profile.bio || 'No establecida'}
+                                <strong>Alias:</strong>
+                                <span>{profile.alias || 'No establecido'}</span>
                             </div>
                             <div className="info-item">
-                                <strong>País:</strong> {profile.country || 'No establecido'}
+                                <strong>Avatar:</strong>
+                                <span>{profile.avatar_url || 'No establecido'}</span>
+                            </div>
+                            <div className="info-item">
+                                <strong>Biografía:</strong>
+                                <span>{profile.bio || 'No establecida'}</span>
+                            </div>
+                            <div className="info-item">
+                                <strong>País:</strong>
+                                <span>{profile.country || 'No establecido'}</span>
                             </div>
                         </div>
                     </div>
@@ -318,11 +326,19 @@ const ProfilePage = ({ onBack }) => {
                         <h3>Preferencias</h3>
                         <div className="profile-info">
                             <div className="info-item">
-                                <strong>Idioma:</strong> {profile.preferences?.language === 'en' ? 'English' :
-                                profile.preferences?.language === 'fr' ? 'Français' : 'Español'}
+                                <strong>Idioma:</strong>
+                                <span>
+                                    {profile.preferences?.language === 'es' && 'Español'}
+                                    {profile.preferences?.language === 'en' && 'English'}
+                                    {profile.preferences?.language === 'fr' && 'Français'}
+                                    {!profile.preferences?.language && 'Español (por defecto)'}
+                                </span>
                             </div>
                             <div className="info-item">
-                                <strong>Filtro de contenido:</strong> {profile.preferences?.explicit_filter ? 'Activado' : 'Desactivado'}
+                                <strong>Filtro de Contenido:</strong>
+                                <span>
+                                    {profile.preferences?.explicit_filter ? 'Activado' : 'Desactivado'}
+                                </span>
                             </div>
                         </div>
                     </div>
