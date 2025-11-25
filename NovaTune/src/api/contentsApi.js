@@ -12,5 +12,8 @@ export async function fetchArtistSongs(artistId) {
         id: t.id,
         title: t.title || t.name || 'untitled',
         artist: t.artist?.name || 'unknown',
+        // Normalizar información de álbum si está disponible
+        album: t.album || null,
+        album_id: t.album?.id ?? t.album_id ?? null,
     }))
 }

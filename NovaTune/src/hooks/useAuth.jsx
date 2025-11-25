@@ -41,6 +41,15 @@ export const AuthProvider = ({ children }) => {
     const login = (tokens) => {
         localStorage.setItem('access_token', tokens.access_token);
         localStorage.setItem('refresh_token', tokens.refresh_token);
+        // If we are doing a real authenticated login, remove any dev_user
+        // impersonation that could cause requests to be sent as the wrong
+        // developer account (e.g. 'seeduser'). This prevents accidental
+        // updates to other users' ratings when switching accounts during dev.
+        try {
+            localStorage.removeItem('dev_user');
+        } catch (e) {
+            // ignore storage errors
+        }
         setIsAuthenticated(true);
     };
 
