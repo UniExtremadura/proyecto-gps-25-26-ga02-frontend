@@ -1,4 +1,3 @@
-// NovaTune/src/App.jsx
 import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
@@ -19,7 +18,6 @@ function App() {
     const [currentView, setCurrentView] = useState("home");
     const [resetToken, setResetToken] = useState("");
     const { isAuthenticated, isLoading, login, logout } = useAuth();
-    const [count, setCount] = useState(0);
 
     const getTokenFromURL = () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -66,10 +64,6 @@ function App() {
                 <h1>Vite + React + NovaTune</h1>
 
                 <div className="card">
-                    <button onClick={() => setCount((count) => count + 1)}>
-                        count is {count}
-                    </button>
-
                     <p>
                         {isAuthenticated
                             ? "¡Bienvenido! Tu sesión está activa."
@@ -77,7 +71,15 @@ function App() {
                     </p>
 
                     {!isAuthenticated && (
-                        <div className="auth-buttons">
+                        <div
+                            className="auth-buttons"
+                            style={{
+                                display: 'flex',
+                                gap: '12px',
+                                justifyContent: 'center',
+                                marginTop: '12px'
+                            }}
+                        >
                             <button
                                 onClick={() => setCurrentView("register")}
                                 className="auth-button"

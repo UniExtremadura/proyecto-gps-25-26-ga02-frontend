@@ -12,7 +12,7 @@ const ProfilePage = ({ onBack }) => {
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
 
-    // 🔄 Datos del formulario de edición
+    // Datos del formulario de edición
     const [formData, setFormData] = useState({
         alias: '',
         avatar_url: '',
@@ -152,15 +152,6 @@ const ProfilePage = ({ onBack }) => {
         <div className="profile-container">
             <button onClick={onBack} className="back-btn">← Volver</button>
 
-            <div className="profile-header">
-                <h2>Mi Perfil</h2>
-                {!isEditing && (
-                    <button onClick={handleEditToggle} className="edit-btn">
-                        Editar Perfil
-                    </button>
-                )}
-            </div>
-
             {/* Mensaje de éxito */}
             {successMessage && (
                 <div className="success-message">
@@ -177,33 +168,71 @@ const ProfilePage = ({ onBack }) => {
                 </div>
             )}
 
+            <div className="profile-header">
+                <div className="profile-avatar-section">
+                    <div className="avatar-container">
+                        {profile.avatar_url ? (
+                            <div
+                                className="avatar-image"
+                                style={{ backgroundImage: `url(${profile.avatar_url})` }}
+                            />
+                        ) : (
+                            <div className="avatar-placeholder">
+                                {profile.alias ? profile.alias.charAt(0).toUpperCase() : profile.username.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <div className="profile-title-section">
+                        <h2>{profile.alias || profile.username}</h2>
+                        <p className="profile-bio">{profile.bio || 'Sin biografía'}</p>
+                    </div>
+                </div>
+
+                {!isEditing && (
+                    <button onClick={handleEditToggle} className="edit-btn">
+                        ✏️ Editar Perfil
+                    </button>
+                )}
+            </div>
+
             {isEditing ? (
                 // MODO EDICIÓN
                 <form onSubmit={handleSave} className="profile-form">
-                    <div className="form-section">
+                    <div className="form-card">
                         <h3>Información Básica</h3>
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label>Alias</label>
+                                <input
+                                    type="text"
+                                    name="alias"
+                                    value={formData.alias}
+                                    onChange={handleInputChange}
+                                    className={errors.alias ? 'error' : ''}
+                                />
+                                {errors.alias && <span className="error-text">{errors.alias}</span>}
+                            </div>
 
-                        <div className="form-group">
-                            <label>Alias</label>
-                            <input
-                                type="text"
-                                name="alias"
-                                value={formData.alias}
-                                onChange={handleInputChange}
-                                className={errors.alias ? 'error' : ''}
-                            />
-                            {errors.alias && <span className="error-text">{errors.alias}</span>}
-                        </div>
+                            <div className="form-group">
+                                <label>URL del Avatar</label>
+                                <input
+                                    type="url"
+                                    name="avatar_url"
+                                    value={formData.avatar_url}
+                                    onChange={handleInputChange}
+                                    placeholder="https://ejemplo.com/avatar.jpg"
+                                />
+                            </div>
 
-                        <div className="form-group">
-                            <label>URL del Avatar</label>
-                            <input
-                                type="url"
-                                name="avatar_url"
-                                value={formData.avatar_url}
-                                onChange={handleInputChange}
-                                placeholder="https://ejemplo.com/avatar.jpg"
-                            />
+                            <div className="form-group">
+                                <label>País</label>
+                                <input
+                                    type="text"
+                                    name="country"
+                                    value={formData.country}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
                         </div>
 
                         <div className="form-group">
@@ -216,32 +245,23 @@ const ProfilePage = ({ onBack }) => {
                                 placeholder="Cuéntanos sobre ti..."
                             />
                         </div>
-
-                        <div className="form-group">
-                            <label>País</label>
-                            <input
-                                type="text"
-                                name="country"
-                                value={formData.country}
-                                onChange={handleInputChange}
-                            />
-                        </div>
                     </div>
 
-                    <div className="form-section">
+                    <div className="form-card">
                         <h3>Preferencias</h3>
-
-                        <div className="form-group">
-                            <label>Idioma</label>
-                            <select
-                                name="language"
-                                value={formData.preferences.language || 'es'}
-                                onChange={handlePreferencesChange}
-                            >
-                                <option value="es">Español</option>
-                                <option value="en">English</option>
-                                <option value="fr">Français</option>
-                            </select>
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label>Idioma</label>
+                                <select
+                                    name="language"
+                                    value={formData.preferences.language || 'es'}
+                                    onChange={handlePreferencesChange}
+                                >
+                                    <option value="es">Español</option>
+                                    <option value="en">English</option>
+                                    <option value="fr">Français</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="form-group checkbox-group">
@@ -276,69 +296,74 @@ const ProfilePage = ({ onBack }) => {
                     </div>
                 </form>
             ) : (
-                // MODO VISTA
-                <div className="profile-view">
-                    <div className="profile-section">
-                        <h3>Información de la Cuenta</h3>
-                        <div className="profile-info">
-                            <div className="info-item">
-                                <strong>ID de Usuario:</strong>
-                                <span>{profile.user_id}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>Email:</strong>
-                                <span>{profile.email}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>Nombre de Usuario:</strong>
-                                <span>{profile.username}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>Tipo de Cuenta:</strong>
-                                <span className="user-type-badge">{profile.user_type_display}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="profile-section">
-                        <h3>Perfil Público</h3>
-                        <div className="profile-info">
-                            <div className="info-item">
-                                <strong>Alias:</strong>
-                                <span>{profile.alias || 'No establecido'}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>Avatar:</strong>
-                                <span>{profile.avatar_url || 'No establecido'}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>Biografía:</strong>
-                                <span>{profile.bio || 'No establecida'}</span>
-                            </div>
-                            <div className="info-item">
-                                <strong>País:</strong>
-                                <span>{profile.country || 'No establecido'}</span>
+                // MODO VISTA MODERNO
+                <div className="profile-content">
+                    <div className="info-grid">
+                        {/* Tarjeta de Información de Cuenta */}
+                        <div className="info-card">
+                            <h3>Información de la Cuenta</h3>
+                            <div className="info-items">
+                                <div className="info-item">
+                                    <strong>ID de Usuario:</strong>
+                                    <span>{profile.user_id}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Email:</strong>
+                                    <span>{profile.email}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Nombre de Usuario:</strong>
+                                    <span>{profile.username}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Tipo de Cuenta:</strong>
+                                    <span className="user-type-badge">{profile.user_type_display}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="profile-section">
-                        <h3>Preferencias</h3>
-                        <div className="profile-info">
-                            <div className="info-item">
-                                <strong>Idioma:</strong>
-                                <span>
-                                    {profile.preferences?.language === 'es' && 'Español'}
-                                    {profile.preferences?.language === 'en' && 'English'}
-                                    {profile.preferences?.language === 'fr' && 'Français'}
-                                    {!profile.preferences?.language && 'Español (por defecto)'}
-                                </span>
+                        {/* Tarjeta de Perfil Público */}
+                        <div className="info-card">
+                            <h3>Perfil Público</h3>
+                            <div className="info-items">
+                                <div className="info-item">
+                                    <strong>Alias:</strong>
+                                    <span>{profile.alias || 'No establecido'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Avatar:</strong>
+                                    <span>{profile.avatar_url ? 'Configurado' : 'No establecido'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Biografía:</strong>
+                                    <span>{profile.bio || 'No establecida'}</span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>País:</strong>
+                                    <span>{profile.country || 'No establecido'}</span>
+                                </div>
                             </div>
-                            <div className="info-item">
-                                <strong>Filtro de Contenido:</strong>
-                                <span>
-                                    {profile.preferences?.explicit_filter ? 'Activado' : 'Desactivado'}
-                                </span>
+                        </div>
+
+                        {/* Tarjeta de Preferencias */}
+                        <div className="info-card">
+                            <h3>Preferencias</h3>
+                            <div className="info-items">
+                                <div className="info-item">
+                                    <strong>Idioma:</strong>
+                                    <span>
+                                        {profile.preferences?.language === 'es' && 'Español'}
+                                        {profile.preferences?.language === 'en' && 'English'}
+                                        {profile.preferences?.language === 'fr' && 'Français'}
+                                        {!profile.preferences?.language && 'Español (por defecto)'}
+                                    </span>
+                                </div>
+                                <div className="info-item">
+                                    <strong>Filtro de Contenido:</strong>
+                                    <span>
+                                        {profile.preferences?.explicit_filter ? 'Activado' : 'Desactivado'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
