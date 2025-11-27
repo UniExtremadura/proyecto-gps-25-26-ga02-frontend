@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 // Configura la URL base de la API desde las variables de entorno
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_PAYMENTS_API_BASE || '/api/payments';
 
 // Crea una instancia de Axios para las solicitudes relacionadas con pagos
 const paymentsApi = axios.create({
-    baseURL: API_URL,
+    baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -36,9 +36,11 @@ export const ordersApi = {
 // Funciones para manejar métodos de pago y confirmación de pagos
 export const paymentsService = {
     savePaymentMethod: (token) => paymentsApi.post('/payment-methods/', {
-        provider: 'stripe', token, make_default: true
+        provider: 'stripe', token: stripeToken, make_default: true
     }),
     confirmPayment: (orderId, pmId) => paymentsApi.post('/payments/intent/', {
         order_id: orderId, payment_method_id: pmId
     })
 };
+
+export default paymentsApi;

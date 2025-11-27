@@ -19,6 +19,13 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (p) => p.replace(/^\/api\/stats/, '/api/v1/stats'),
             },
+            '/api/payments': {
+                target: 'http://127.0.0.1:8003',
+                changeOrigin: true,
+                // Transforma "/api/payments/cart" -> "/api/v1/cart"
+                rewrite: (p) => p.replace(/^\/api\/payments/, '/api/v1'),
+            },
+
         },
     },
 })

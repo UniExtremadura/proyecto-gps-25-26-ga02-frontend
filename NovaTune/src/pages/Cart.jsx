@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useState } from "react";
 import { cartApi, ordersApi } from "../api/paymentsApi.js";
 import { useCart } from "../context/CartContext.jsx";
 
@@ -34,7 +34,7 @@ export default function Cart ({ onCheckout, onBack }) {
             setLoading(true);
             const response = await ordersApi.createOrder();
             // Pasamos el ID del pedido al componente padre
-            onCheckout(response.data.ordered);
+            onCheckout(response.data.order_id);
         } catch (err) {
             alert("Error al crear pedido: " + err.message);
             setLoading(false);
