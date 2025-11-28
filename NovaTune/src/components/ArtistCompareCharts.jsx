@@ -12,11 +12,13 @@ export default function ArtistCompareCharts({ selected }) {
     const [error, setError] = useState(null);
     const [artistCount, setArtistCount] = useState(0);
     const [artistAverage, setArtistAverage] = useState(null);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         let mounted = true;
         const load = async () => {
-            if (!selected) {
+                console.debug('ArtistCompareCharts: selected', selected);
+                if (!selected) {
                 setTracks([]);
                 setArtistCount(0);
                 setArtistAverage(null);
@@ -25,18 +27,25 @@ export default function ArtistCompareCharts({ selected }) {
             setLoading(true);
             setError(null);
             try {
-                const artistId = selected.id || selected.artist_id || selected.artistId || (selected.artist && (selected.artist.id || selected.artist.artist_id));
+                const artistIdRaw = selected.id || selected.artist_id || selected.artistId || (selected.artist && (selected.artist.id || selected.artist.artist_id));
+                const artistId = artistIdRaw == null ? null : String(artistIdRaw);
                 if (!artistId) throw new Error('Artist id not available');
 
-                // Try to fetch artist-level aggregate first
+                // Try to fetch artist-level aggregate first (fast path)
                 try {
-                    const ar = await fetch(`${API_STATS_BASE}/stats/artists/aggregate?limit=1&sort=average&enrich=0` , { headers: ROLE_HEADER });
+                    const artistAggUrl = `${API_STATS_BASE}/stats/artists/${encodeURIComponent(artistId)}/aggregate/`;
+                    const ar = await fetch(artistAggUrl, { headers: ROLE_HEADER });
                     if (ar.ok) {
-                        // we won't rely on this heavily here; the per-track aggregation
-                        // below is the authoritative source for the chart
+                        const ab = await ar.json();
+                        const cnt = (typeof ab.ratings_count === 'number') ? ab.ratings_count : ((typeof ab.count === 'number') ? ab.count : 0);
+                        const avg = (typeof ab.ratings_average === 'number') ? ab.ratings_average : ((typeof ab.average === 'number') ? ab.average : null);
+                        if (mounted) {
+                            setArtistCount(Number(cnt || 0));
+                            setArtistAverage(avg === null ? null : Number(avg));
+                        }
                     }
                 } catch (e) {
-                    // ignore
+                    // ignore and continue to per-track aggregation
                 }
 
                 // Fetch tracks for artist
@@ -45,37 +54,20 @@ export default function ArtistCompareCharts({ selected }) {
                 const body = await r.json();
                 const items = Array.isArray(body) ? body : (body.items || []);
 
-                // For each track, fetch aggregate rating (parallel)
+                // For each track, fetch aggregate rating (parallel) using songAggregate
                 const rated = await Promise.all(items.map(async (t) => {
-                    const tid = t.id || t.track_id || t.uuid || t.song_id || t.title;
-                    if (!tid) return { track: t, average: null, count: 0 };
+                    const tid = t.id || t.track_id || t.uuid || t.song_id || t.title
+                    if (!tid || String(tid) === 'undefined' || String(tid) === 'null') {
+                        console.warn('ArtistCompareCharts: skipping fetch for invalid track id', tid, t)
+                        return null
+                    }
+                    const aggUrl = `${API_STATS_BASE}/stats/songs/${encodeURIComponent(String(tid))}/songAggregate/`;
                     try {
-                        const rr = await fetch(`${API_STATS_BASE}/stats/songs/${encodeURIComponent(tid)}/rating`);
+                        const rr = await fetch(aggUrl);
                         if (!rr.ok) return { track: t, average: null, count: 0 };
                         const rb = await rr.json();
-                        // normalize
-                        let avg = null, count = 0;
-                        if (rb == null) { avg = null; count = 0; }
-                        else if (typeof rb.average !== 'undefined') { avg = Number(rb.average); count = Number(rb.count) || 0; }
-                        else if (Array.isArray(rb.results) && rb.results.length) { const arr = rb.results; count = arr.length; avg = arr.reduce((s,it)=>s+(Number(it.stars)||0),0)/count; }
-                        else if (Array.isArray(rb.items) && rb.items.length) { const arr = rb.items; count = arr.length; avg = arr.reduce((s,it)=>s+(Number(it.stars)||0),0)/count; }
-                        else if (Array.isArray(rb) && rb.length) { const arr = rb; count = arr.length; avg = arr.reduce((s,it)=>s+(Number(it.stars)||0),0)/count; }
-                        else if (rb && typeof rb.stars !== 'undefined') { avg = Number(rb.stars); count = 1; }
-
-                        // fallback to ratings list if aggregate missing
-                        if ((count === 0 || avg === null)) {
-                            try {
-                                const rr2 = await fetch(`${API_STATS_BASE}/stats/songs/${encodeURIComponent(tid)}/ratings/`);
-                                if (rr2.ok) {
-                                    const rb2 = await rr2.json();
-                                    let arr = [];
-                                    if (Array.isArray(rb2)) arr = rb2;
-                                    else if (Array.isArray(rb2.results)) arr = rb2.results;
-                                    else if (Array.isArray(rb2.items)) arr = rb2.items;
-                                    if (arr && arr.length) { count = arr.length; avg = arr.reduce((s,it)=>s+(Number(it.stars)||0),0)/count; }
-                                }
-                            } catch (e) { /* ignore */ }
-                        }
+                        const count = (typeof rb.ratings_count === 'number') ? rb.ratings_count : ((typeof rb.count === 'number') ? rb.count : 0);
+                        const avg = (typeof rb.ratings_average === 'number') ? rb.ratings_average : ((typeof rb.average === 'number') ? rb.average : null);
                         return { track: t, average: avg, count };
                     } catch (e) {
                         return { track: t, average: null, count: 0 };
@@ -83,6 +75,7 @@ export default function ArtistCompareCharts({ selected }) {
                 }));
 
                 if (!mounted) return;
+                console.debug('ArtistCompareCharts: tracks rated', rated);
                 setTracks(rated);
                 const totalCount = rated.reduce((s,it)=>s + (Number(it.count)||0), 0);
                 const weightedSum = rated.reduce((s,it)=>s + ((Number(it.average)||0) * (Number(it.count)||0)), 0);
@@ -98,7 +91,14 @@ export default function ArtistCompareCharts({ selected }) {
         };
         load();
         return () => { mounted = false; };
-    }, [selected]);
+    }, [selected, reloadKey]);
+
+    // Listen for global rating changes so charts refresh when ratings update elsewhere
+    useEffect(() => {
+        const handler = () => setReloadKey(k => k + 1);
+        window.addEventListener('ratings:changed', handler);
+        return () => window.removeEventListener('ratings:changed', handler);
+    }, []);
 
     if (!selected) return null;
 
@@ -144,6 +144,8 @@ export default function ArtistCompareCharts({ selected }) {
                                 const y = chartTop + (5 - v) * (chartHeight / 5);
                                 return (
                                     <g key={v}>
+                                        {/* light dashed gridline across the chart background */}
+                                        <line x1={40} y1={y} x2={svgWidth - 10} y2={y} stroke="#475569" strokeWidth={1.4} strokeDasharray="6 4" opacity={0.28} />
                                         <line x1={36} y1={y} x2={40} y2={y} stroke="#e2e8f0" />
                                         <text x={10} y={y+4} fontSize={10} fill="#94a3b8">{v}</text>
                                     </g>

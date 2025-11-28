@@ -1,5 +1,5 @@
 // NovaTune/src/App.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
 import "./App.css";
@@ -18,7 +18,25 @@ function App() {
     const [count, setCount] = useState(0);
     const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs' | 'label_stats'
 
-    const { isAuthenticated, login, logout } = useAuth();
+    const { isAuthenticated, login, logout, getCurrentUserRole } = useAuth();
+    const [currentRole, setCurrentRole] = useState(null);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            if (!isAuthenticated) {
+                setCurrentRole(null);
+                return;
+            }
+            try {
+                const role = await getCurrentUserRole();
+                if (mounted) setCurrentRole(role);
+            } catch (e) {
+                if (mounted) setCurrentRole(null);
+            }
+        })();
+        return () => { mounted = false };
+    }, [isAuthenticated, getCurrentUserRole]);
 
     // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
     let mainContent;
@@ -61,24 +79,31 @@ function App() {
                         <div className="stats-shortcut">
                             <p>Accede rápidamente a tus paneles de estadísticas:</p>
                             <div className="stats-shortcut-buttons">
-                                <button
-                                    className="primary-button"
-                                    onClick={() => setCurrentView("songs")}
-                                >
-                                    Panel de artista
-                                </button>
-                                <button
-                                    className="secondary-button"
-                                    onClick={() => setCurrentView("label_stats")}
-                                >
-                                    Panel de discográfica
-                                </button>
-                                <button
-                                    className="secondary-button"
-                                    onClick={() => setCurrentView("ratings")}
-                                >
-                                    Valoraciones de usuarios
-                                </button>
+                                {/* Show only the panel corresponding to the current role */}
+                                {(() => {
+                                    const r = currentRole ? String(currentRole).toLowerCase() : null;
+                                    if (!r) return null; // still loading role
+                                    if (r.includes('artist') || r.includes('artista')) {
+                                        return (
+                                            <button className="primary-button" onClick={() => setCurrentView('songs')}>
+                                                Panel de artista
+                                            </button>
+                                        );
+                                    }
+                                    if (r.includes('label') || r.includes('discograf')) {
+                                        return (
+                                            <button className="secondary-button" onClick={() => setCurrentView('label_stats')}>
+                                                Panel de discográfica
+                                            </button>
+                                        );
+                                    }
+                                    // default: normal user
+                                    return (
+                                        <button className="secondary-button" onClick={() => setCurrentView('ratings')}>
+                                            Valoraciones de usuarios
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}

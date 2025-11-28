@@ -1,7 +1,8 @@
 // src/api/statsApi.js
 import axios from 'axios';
 
-const STATS_BASE = import.meta.env.VITE_STATS_API_BASE || '/api/stats';
+// Use the v1 stats prefix by default to match backend routes
+const STATS_BASE = import.meta.env.VITE_STATS_API_BASE || '/api/v1/stats';
 
 /**
  * GET: cuenta reproducciones
@@ -10,10 +11,35 @@ export async function fetchSongPlays(songId) {
     const url = `${STATS_BASE}/songs/${encodeURIComponent(songId)}/plays`;
     try {
         const { data } = await axios.get(url, { timeout: 5000 });
+
+        // Accept several response shapes for robustness:
+        // - { plays: number }
+        // - { plays: '123' }
+        // - { total: number } or { count: number }
+        // - an array of play records -> use length
+        // - empty object -> treat as 0 plays
+        let plays = null;
+
         if (data && typeof data.plays === 'number') {
-            return { ok: true, plays: data.plays };
+            plays = data.plays;
+        } else if (data && typeof data.plays === 'string' && /^\d+$/.test(data.plays)) {
+            plays = Number(data.plays);
+        } else if (data && typeof data.total === 'number') {
+            plays = data.total;
+        } else if (data && typeof data.count === 'number') {
+            plays = data.count;
+        } else if (Array.isArray(data)) {
+            plays = data.length;
+        } else if (data && (Array.isArray(data.results) || Array.isArray(data.items))) {
+            plays = (data.results || data.items).length;
         }
-        return { ok: false, error: 'Respuesta inesperada de estadísticas.' };
+
+        // If we couldn't extract a numeric value, treat as 0 rather than an unexpected-error.
+        if (plays === null || Number.isNaN(Number(plays))) {
+            return { ok: true, plays: 0 };
+        }
+
+        return { ok: true, plays: Number(plays) };
     } catch (err) {
         if (err.response) {
             if (err.response.status === 404) {
@@ -73,7 +99,7 @@ export async function decrementSongPlay(songId) {
 }
 // src/api/statsApi.js
 
-const BASE_URL = "/api/stats"; // esto va al proxy de Vite (8002)
+// legacy BASE_URL removed; use STATS_BASE above which defaults to `/api/v1/stats`
 
 /**
  * Ventas por álbum.
@@ -81,7 +107,6 @@ const BASE_URL = "/api/stats"; // esto va al proxy de Vite (8002)
  *
  * @param {string} albumId
  * @param {object} options
- *   - includeRefunds: boolean (false por defecto)
  *   - from: string ISO datetime
  *   - to: string ISO datetime
  *   - revenue: boolean (true para que devuelva revenue)
@@ -90,11 +115,10 @@ const BASE_URL = "/api/stats"; // esto va al proxy de Vite (8002)
 
 export async function fetchAlbumSales(
     albumId,
-    { includeRefunds = false, from, to, revenue = true } = {}
+    { from, to, revenue = true } = {}
 ) {
     const params = new URLSearchParams();
 
-    if (includeRefunds) params.set("include_refunds", "1");
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     if (revenue) params.set("revenue", "1");
@@ -107,6 +131,9 @@ export async function fetchAlbumSales(
     }`;
 
     try {
+        try {
+            console.debug("fetchAlbumSales ->", url);
+        } catch (e) {}
         const res = await fetch(url);
         const data = await res.json().catch(() => ({}));
 
@@ -118,13 +145,22 @@ export async function fetchAlbumSales(
             };
         }
 
+        // Accept multiple backend shapes for compatibility:
+        // - { sales_count, units_sold, revenue }
+        // - { album_id, orders, sales, revenue }
+        // - { album_id, sales_count, units_sold, revenue }
+        const album_id = data.album_id ?? albumId;
+        const orders = data.orders ?? data.sales_count ?? data.sales ?? 0;
+        const units = data.sales ?? data.units_sold ?? data.units ?? 0;
+        const rev = data.revenue ?? data.total_revenue ?? null;
+
         return {
             ok: true,
             status: res.status,
-            albumId: data.album_id,
-            orders: data.orders ?? 0,
-            units: data.sales ?? 0,
-            revenue: data.revenue ?? null,
+            albumId: album_id,
+            orders: Number(orders || 0),
+            units: Number(units || 0),
+            revenue: rev == null ? null : Number(rev),
         };
     } catch (err) {
         console.error("fetchAlbumSales error", err);
