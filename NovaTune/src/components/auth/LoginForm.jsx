@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { loginUser } from '../../services/userApi.js';
+import { useAuth } from '../../hooks/useAuth';
 import './LoginForm.css';
 
-const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateToRegister }) => {
+const LoginForm = ({ onBack, onSuccess }) => {
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -13,6 +15,7 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
     const [successMessage, setSuccessMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
 
+    // Validación en tiempo real
     const validateField = (name, value) => {
         const newErrors = { ...errors };
 
@@ -49,6 +52,7 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
             [name]: value
         });
 
+        // Limpiar mensajes cuando el usuario empiece a escribir
         if (showSuccess) setShowSuccess(false);
         if (successMessage) setSuccessMessage('');
 
@@ -65,18 +69,23 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validar todos los campos antes de enviar
         Object.keys(formData).forEach(key => {
             validateField(key, formData[key]);
         });
 
+        // Marcar todos los campos como tocados
         setTouched({
             email: true,
             password: true
         });
 
+        // Si hay errores de validación, no enviar
         if (Object.keys(errors).length > 0) {
             return;
         }
+
 
         setIsLoading(true);
         setErrors({});
@@ -85,30 +94,40 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
 
         try {
             const response = await loginUser(formData);
+
+            // ✅ ÉXITO - Mostrar mensaje y guardar tokens
             setSuccessMessage(`¡Bienvenido de nuevo! Sesión iniciada correctamente.`);
             setShowSuccess(true);
 
-            localStorage.setItem('access_token', response.access_token);
-            localStorage.setItem('refresh_token', response.refresh_token);
+            // Guardar tokens en localStorage
+            //localStorage.setItem('access_token', response.access_token);
+            //localStorage.setItem('refresh_token', response.refresh_token);
 
-            console.log('Tokens guardados:', {
-                access_token: response.access_token,
-                refresh_token: response.refresh_token
-            });
+            //console.log('Tokens guardados:', {
+                //access_token: response.access_token,
+                //refresh_token: response.refresh_token
+            //});
 
+            //En lugar de guardar en local, usamos el hook
+            login(response);
+
+            // Limpiar formulario
             setFormData({
                 email: '',
                 password: ''
             });
 
+            // 🔄 REDIRECCIÓN AUTOMÁTICA después de 2 segundos
             setTimeout(() => {
                 if (onSuccess) {
                     onSuccess(response);
+                } else {
+                    window.location.href = '/';
                 }
             }, 2000);
 
         } catch (error) {
-            // ERRORES - Mostrar mensajes específicos
+            // ❌ ERRORES - Mostrar mensajes específicos
             if (error.status === 422 && error.data && error.data.details) {
                 // Errores de validación del servidor
                 setErrors(error.data.details);
@@ -132,7 +151,7 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
             <button onClick={onBack} className="back-btn">← Volver</button>
             <h2>Iniciar Sesión en NovaTune</h2>
 
-            {/* MENSAJE DE ÉXITO */}
+            {/* ✅ MENSAJE DE ÉXITO */}
             {showSuccess && (
                 <div className="success-message">
                     <div className="success-icon">✓</div>
@@ -181,7 +200,7 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
                     )}
                 </div>
 
-                {/* ERROR GENERAL */}
+                {/* ❌ ERROR GENERAL */}
                 {errors.general && !showSuccess && (
                     <div className="error-message">
                         <div className="error-icon">⚠</div>
@@ -198,8 +217,7 @@ const LoginForm = ({ onBack, onSuccess, onNavigateToForgotPassword, onNavigateTo
                 </button>
 
                 <div className="login-links">
-                    <p>¿No tienes cuenta? <button type="button" className="link-btn" onClick={onNavigateToRegister}>Regístrate aquí</button></p>
-                    <p>¿Olvidaste tu contraseña? <button type="button" className="link-btn" onClick={onNavigateToForgotPassword}>Recupérala aquí</button></p>
+                    <p>¿No tienes cuenta? <button type="button" className="link-btn">Regístrate aquí</button></p>
                 </div>
             </form>
         </div>

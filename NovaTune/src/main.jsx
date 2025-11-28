@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './hooks/useAuth.jsx' // NUEVO IMPORT
+// (No automatic dev-user headers injected here — keep client behavior unchanged)
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
