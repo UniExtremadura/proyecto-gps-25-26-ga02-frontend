@@ -17,7 +17,7 @@ export default function ArtistCompareCharts({ selected }) {
     useEffect(() => {
         let mounted = true;
         const load = async () => {
-                console.debug('ArtistCompareCharts: selected', selected);
+                // selected changed
                 if (!selected) {
                 setTracks([]);
                 setArtistCount(0);
@@ -75,7 +75,6 @@ export default function ArtistCompareCharts({ selected }) {
                 }));
 
                 if (!mounted) return;
-                console.debug('ArtistCompareCharts: tracks rated', rated);
                 setTracks(rated);
                 const totalCount = rated.reduce((s,it)=>s + (Number(it.count)||0), 0);
                 const weightedSum = rated.reduce((s,it)=>s + ((Number(it.average)||0) * (Number(it.count)||0)), 0);

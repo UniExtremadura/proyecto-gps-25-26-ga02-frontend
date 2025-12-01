@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import StarRating from '../components/StarRating'
+import StarRating from '../components/stats/StarRating'
 import { fetchArtistSongs } from '../api/contentsApi'
 
 const API_CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || '/api/content'
@@ -31,6 +31,30 @@ const isJwtValid = (t) => {
     } catch (e) { return false }
 }
 
+// Build authentication headers for fetch/axios calls.
+// In DEV prefer `X-Dev-User` impersonation to avoid cross-service JWT issues;
+// otherwise include `Authorization: Bearer <token>` when a valid token exists.
+const buildAuthHeaders = () => {
+    const headers = { 'Content-Type': 'application/json' }
+    const token = localStorage.getItem('access_token')
+    const devUser = localStorage.getItem('dev_user')
+    const tokenLooksValid = isJwtValid(token)
+    if (token && tokenLooksValid) {
+        if (import.meta.env.DEV) {
+            const p = decodeJwt(token)
+            if (p && (p.username || p.user || p.sub)) headers['X-Dev-User'] = p.username || p.user || p.sub
+            if (!headers['X-Dev-User']) headers['X-Dev-User'] = devUser || 'user1'
+        } else {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+    } else if (devUser) {
+        headers['X-Dev-User'] = devUser
+    } else if (import.meta.env.DEV) {
+        headers['X-Dev-User'] = devUser || 'user1'
+    }
+    return headers
+}
+
 export default function Ratings() {
     const [artists, setArtists] = useState([])
     const [loadingArtists, setLoadingArtists] = useState(true)
@@ -42,6 +66,7 @@ export default function Ratings() {
     const [saving, setSaving] = useState({})
     const [errorMessages, setErrorMessages] = useState({})
  
+
 
 
     // Load artists and prefetch songs/aggregates on mount
@@ -83,7 +108,7 @@ export default function Ratings() {
                             for (const s of items) {
                                 const sid = s.id || s.song_id || s.track_id || s.title
                                 if (sid) {
-                                    console.debug('Ratings: scheduling fetchRatingForSong for', sid)
+                                    // scheduling fetchRatingForSong for sid
                                     void fetchRatingForSong(sid)
                                 }
                             }
@@ -94,7 +119,7 @@ export default function Ratings() {
                         console.warn('Preloading songs failed for', art.id, e)
                     }
                     try {
-                        console.debug('Ratings: scheduling fetchArtistAggregate for', art.id)
+                        // scheduling fetchArtistAggregate for art.id
                         void fetchArtistAggregate(art.id)
                     } catch (e) { /* ignore */ }
                 }
@@ -201,6 +226,120 @@ export default function Ratings() {
         setArtistAggregates(prev => ({ ...prev, [artistId]: { average: avg, count: totalCount, _loading: loading } }))
     }
 
+    // Polling interval (ms) for auto-refreshing ratings of expanded artists
+    const POLL_INTERVAL_MS = 10000 // 10s
+
+    // --- Concurrency limiter for rating fetches (persistent across renders) ---
+    const MAX_CONCURRENT_RATING_REQUESTS = 6
+    const ratingActiveRef = useRef(0)
+    const ratingQueueRef = useRef([])
+    const _acquireRatingSlot = () => new Promise(resolve => {
+        if (ratingActiveRef.current < MAX_CONCURRENT_RATING_REQUESTS) {
+            ratingActiveRef.current += 1
+            resolve()
+        } else {
+            ratingQueueRef.current.push(resolve)
+        }
+    })
+    const _releaseRatingSlot = () => {
+        ratingActiveRef.current = Math.max(0, ratingActiveRef.current - 1)
+        if (ratingQueueRef.current.length) {
+            const r = ratingQueueRef.current.shift()
+            ratingActiveRef.current += 1
+            try { r() } catch (e) { /* ignore */ }
+        }
+    }
+
+    const toggleArtist = async (artistId) => {
+        setExpanded(prev => ({ ...prev, [artistId]: !prev[artistId] }))
+        if (!songsMap[artistId]) {
+            try {
+                const items = await fetchArtistSongs(artistId)
+                setSongsMap(prev => ({ ...prev, [artistId]: items }))
+                // initialize placeholders for ratings to avoid empty UI
+                setRatingsMap(prev => {
+                    const copy = { ...prev }
+                    for (const s of items) {
+                        const sid = s.id || s.song_id || s.track_id || s.title
+                        if (!copy[sid]) {
+                            copy[sid] = { average: null, count: 0, user_rating: null, _loading: true }
+                        }
+                    }
+                    return copy
+                })
+                // fetch ratings for each song (rate-limited by fetchRatingForSong)
+                for (const s of items) {
+                    const sid = s.id || s.song_id || s.track_id || s.title
+                    if (sid) void fetchRatingForSong(sid)
+                }
+            } catch (err) {
+                console.error('Error loading songs for artist', err)
+            }
+        }
+    }
+
+    const fetchArtistAggregate = async (artistId) => {
+        // First, try the server-side artist aggregate endpoint (single call).
+        try {
+            const url = `${API_STATS_BASE}/stats/artists/${encodeURIComponent(artistId)}/aggregate/`
+            const headers = buildAuthHeaders()
+            const resp = await fetch(url, { headers })
+            if (resp && resp.ok) {
+                try {
+                    const body = await resp.json()
+                    const count = typeof body.ratings_count === 'number' ? body.ratings_count : (body.count || body.ratings || 0)
+                    const avg = (typeof body.ratings_average === 'number') ? body.ratings_average : (typeof body.average === 'number' ? body.average : null)
+                    setArtistAggregates(prev => ({ ...prev, [artistId]: { average: (avg == null ? null : Number(avg)), count: Number(count || 0), _loading: false } }))
+                    const existing = songsMap[artistId]
+                    if (existing && existing.length) {
+                        computeArtistAggregate(artistId)
+                        return
+                    }
+                    return
+                } catch (e) {
+                    // fallback to per-track aggregation below
+                }
+            }
+        } catch (e) {
+            // ignore and fallback to previous behavior
+        }
+
+        // If server-side aggregate not available or failed, fall back to per-track aggregation
+        try {
+            const existing = songsMap[artistId]
+            if (existing && existing.length) {
+                const ag = artistAggregates[artistId]
+                if (ag && ag._loading) return
+                computeArtistAggregate(artistId)
+                return
+            }
+
+            const items = await fetchArtistSongs(artistId)
+            if (!items || !items.length) {
+                setSongsMap(prev => ({ ...prev, [artistId]: [] }))
+                setArtistAggregates(prev => ({ ...prev, [artistId]: { average: null, count: 0, _loading: false } }))
+                return
+            }
+            setSongsMap(prev => ({ ...prev, [artistId]: items }))
+            setRatingsMap(prev => {
+                const copy = { ...prev }
+                for (const s of items) {
+                    const sid = s.id || s.song_id || s.track_id || s.title
+                    if (!copy[sid]) {
+                        copy[sid] = { average: null, count: 0, user_rating: null, _loading: true }
+                    }
+                }
+                return copy
+            })
+            for (const s of items) {
+                const sid = s.id || s.song_id || s.track_id || s.title
+                if (sid) void fetchRatingForSong(sid)
+            }
+        } catch (e) {
+            console.warn('fetchArtistAggregate failed for', artistId, e)
+        }
+    }
+
     // Poll all artists periodically so aggregates stay fresh even when the
     // user doesn't expand an artist. This provides near-live updates.
     useEffect(() => {
@@ -230,9 +369,10 @@ export default function Ratings() {
         await _acquireRatingSlot()
             try {
                 // Try fast song-level aggregate endpoint first so UI shows avg/count quickly
+                const headers = buildAuthHeaders()
                 try {
-                        const aggUrl = `${API_STATS_BASE}/stats/songs/${encodeURIComponent(canonicalId)}/songAggregate/`
-                    const aggResp = await fetch(aggUrl)
+                    const aggUrl = `${API_STATS_BASE}/stats/songs/${encodeURIComponent(canonicalId)}/songAggregate/`
+                    const aggResp = await fetch(aggUrl, { headers })
                     if (aggResp && aggResp.ok) {
                         const aggBody = await aggResp.json()
                         const preCount = typeof aggBody.ratings_count === 'number' ? aggBody.ratings_count : (aggBody.count || 0)
@@ -245,14 +385,6 @@ export default function Ratings() {
                     }
                 } catch (e) {
                     // ignore aggregate failures and continue to fetch full list
-                }
-                
-                const token = localStorage.getItem('access_token')
-                const devUser = localStorage.getItem('dev_user')
-                const headers = { 'Content-Type': 'application/json' }
-                
-                if (token && isJwtValid(token)) {
-                    headers['Authorization'] = `Bearer ${token}`
                 }
 
                 // Fetch individual ratings list for the song and compute aggregates client-side
@@ -277,6 +409,8 @@ export default function Ratings() {
                 }
 
                 // decode JWT to obtain current user id/username for client-side presence check
+                const token = localStorage.getItem('access_token')
+                const devUser = localStorage.getItem('dev_user')
                 let payload = decodeJwt(token)
                 if (!payload && devUser) payload = { username: devUser }
                 let hasRated = false
@@ -317,7 +451,7 @@ export default function Ratings() {
                 }
                 return store
         } catch (err) {
-            // Avoid noisy 401 errors in console for DEV impersonation flow
+            // Suppress noisy 401 logs during DEV impersonation flow
             if (err?.response?.status === 401 && import.meta.env.DEV) {
                 console.warn('Fetching rating unauthorized; no user_rating available (DEV)')
             } else {
@@ -389,8 +523,7 @@ export default function Ratings() {
 
             // Helper: check JWT expiry locally (so we avoid sending obviously expired tokens)
             const tokenLooksValid = isJwtValid(token)
-            // Prefer a valid JWT if available. If not present, fall back to
-            // explicit `dev_user` impersonation for local development convenience.
+            // Prefer a valid JWT if available; otherwise fall back to `dev_user` for local development.
             if (token && tokenLooksValid) {
                 // In development prefer dev-user impersonation to avoid cross-db
                 // JWT mismatches between backends. Do not send `Authorization`
@@ -438,15 +571,10 @@ export default function Ratings() {
                 }
             }
             const body = artist_id ? { stars, artist_id } : { stars }
-            // If user already has a rating id for this song, update it; otherwise create new.
-            const existingId = (ratingsMap[canonicalSongId] && ratingsMap[canonicalSongId]._user_rating_id) || (ratingsMap[songId] && ratingsMap[songId]._user_rating_id) || null
+            // Create a new rating for everyone: always POST to the per-song
+            // ratings endpoint. This will POST a new rating and does not enforce client-side ownership checks.
             let resp
-            if (existingId) {
-                const patchUrl = `${API_STATS_BASE}/stats/ratings/${existingId}/`
-                resp = await axios.patch(patchUrl, body, { headers, timeout: 5000 })
-            } else {
-                resp = await axios.post(postUrl, body, { headers, timeout: 5000 })
-            }
+            resp = await axios.post(postUrl, body, { headers, timeout: 5000 })
             
 
             // Persist expanded artists so page state survives navigation
@@ -490,7 +618,7 @@ export default function Ratings() {
                 }
             } catch (e) { /* ignore */ }
         } catch (err) {
-            // For DEV, avoid noisy 401 error logs — we handle retry logic above
+            // For DEV, suppress noisy 401 logs — retry/handling logic applies above
             const status = err?.response?.status
             if (status === 401 && import.meta.env.DEV) {
                 console.warn('Error saving rating: unauthorized (DEV). Retried with dev user or needs login.')
@@ -564,12 +692,21 @@ export default function Ratings() {
                 return
             }
 
-            // Choose the rating with the highest numeric id (assumed latest overall)
-            let toDelete = ratingsList.reduce((best, cur) => {
-                const cid = Number(cur.id || cur.pk || 0)
-                const bid = Number(best.id || best.pk || 0)
-                return cid > bid ? cur : best
-            }, ratingsList[0])
+            // Choose the most recently created rating (by highest id) regardless
+            // of author so anyone can delete any rating.
+            let toDelete = null
+            for (const r of ratingsList) {
+                const rId = Number(r.id ?? r.pk ?? r._id ?? 0)
+                if (!toDelete) { toDelete = r; continue }
+                const curId = Number(toDelete.id ?? toDelete.pk ?? toDelete._id ?? 0)
+                if (rId > curId) toDelete = r
+            }
+
+            if (!toDelete) {
+                setErrorMessages(prev => ({ ...prev, [songId]: 'No hay valoraciones para borrar.' }))
+                setSaving(prev => ({ ...prev, [songId]: false }))
+                return
+            }
 
             const existingId = toDelete && (toDelete.id || toDelete.pk || toDelete._id) ? String(toDelete.id || toDelete.pk || toDelete._id) : null
             if (!existingId) {

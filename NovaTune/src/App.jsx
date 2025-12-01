@@ -6,6 +6,8 @@ import "./App.css";
 
 import RegisterForm from "./components/auth/RegisterForm.jsx";
 import LoginForm from "./components/auth/LoginForm.jsx";
+import ForgotPasswordForm from "./components/auth/ForgotPasswordForm.jsx";
+import ResetPasswordForm from "./components/auth/ResetPasswordForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
@@ -14,31 +16,41 @@ import Ratings from "./pages/Ratings.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 
 function App() {
-    // count se queda por si lo necesitas más adelante (plantilla de Vite)
-    const [count, setCount] = useState(0);
-    const [currentView, setCurrentView] = useState("home"); // 'home' | 'register' | 'login' | 'songs' | 'label_stats'
-
+    const [currentView, setCurrentView] = useState("home");
+    const [resetToken, setResetToken] = useState("");
     const { isAuthenticated, login, logout, getCurrentUserRole } = useAuth();
-    const [currentRole, setCurrentRole] = useState(null);
+    const [currentRole, setCurrentRole] = useState(null)
+
+    const getTokenFromURL = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get("token");
+    };
 
     useEffect(() => {
-        let mounted = true;
-        (async () => {
-            if (!isAuthenticated) {
-                setCurrentRole(null);
-                return;
-            }
-            try {
-                const role = await getCurrentUserRole();
-                if (mounted) setCurrentRole(role);
-            } catch (e) {
-                if (mounted) setCurrentRole(null);
-            }
-        })();
-        return () => { mounted = false };
-    }, [isAuthenticated, getCurrentUserRole]);
+        const token = getTokenFromURL();
+        if (token) {
+            setResetToken(token);
+            setCurrentView("reset-password");
+        }
+    }, []);
 
-    // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
+    // Resolve current user role when auth state changes
+    useEffect(() => {
+        let cancelled = false
+        const loadRole = async () => {
+            if (!isAuthenticated) { setCurrentRole(null); return }
+            try {
+                const r = await getCurrentUserRole()
+                if (!cancelled) setCurrentRole(r)
+            } catch (e) {
+                if (!cancelled) setCurrentRole(null)
+                if (!cancelled) setCurrentRole(null)
+            }
+        }
+        void loadRole()
+        return () => { cancelled = true }
+    }, [isAuthenticated])
+
     let mainContent;
 
     if (currentView === "home") {
@@ -62,56 +74,43 @@ function App() {
                             : "Inicia sesión o regístrate para acceder al panel del artista y de la discográfica."}
                     </p>
 
-                    {/* BOTONES DE LOGIN / REGISTRO CUANDO NO ESTÁ AUTENTICADO */}
                     {!isAuthenticated && (
                         <div className="auth-buttons">
-                            <button onClick={() => setCurrentView("register")}>
-                                Registrarse
-                            </button>
-                            <button onClick={() => setCurrentView("login")}>
-                                Iniciar sesión
-                            </button>
+                            <button onClick={() => setCurrentView("register")}>Registrarse</button>
+                            <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
                         </div>
                     )}
 
-                    {/* ACCESOS DIRECTOS A LOS PANELES CUANDO YA ESTÁ LOGUEADO */}
                     {isAuthenticated && (
                         <div className="stats-shortcut">
                             <p>Accede rápidamente a tus paneles de estadísticas:</p>
                             <div className="stats-shortcut-buttons">
-                                {/* Show only the panel corresponding to the current role */}
-                                {(() => {
-                                    const r = currentRole ? String(currentRole).toLowerCase() : null;
-                                    if (!r) return null; // still loading role
-                                    if (r.includes('artist') || r.includes('artista')) {
-                                        return (
-                                            <button className="primary-button" onClick={() => setCurrentView('songs')}>
-                                                Panel de artista
-                                            </button>
-                                        );
-                                    }
-                                    if (r.includes('label') || r.includes('discograf')) {
-                                        return (
-                                            <button className="secondary-button" onClick={() => setCurrentView('label_stats')}>
-                                                Panel de discográfica
-                                            </button>
-                                        );
-                                    }
-                                    // default: normal user
-                                    return (
-                                        <button className="secondary-button" onClick={() => setCurrentView('ratings')}>
-                                            Valoraciones de usuarios
-                                        </button>
-                                    );
-                                })()}
+                                {/* Show Artist panel for artist+label roles */}
+                                { (currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="primary-button" onClick={() => setCurrentView("songs") }>
+                                        Panel de artista
+                                    </button>
+                                )}
+
+                                {/* Show Label panel for label role only */}
+                                { (currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="secondary-button" onClick={() => setCurrentView("label_stats") }>
+                                        Panel de discográfica
+                                    </button>
+                                )}
+
+                                {/* Show Ratings for users, artists and labels */}
+                                { (currentRole === 'user' || currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="secondary-button" onClick={() => setCurrentView("ratings") }>
+                                        Valoraciones de usuarios
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
 
-                <p className="read-the-docs">
-                    Click on the Vite and React logos to learn more
-                </p>
+                <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
             </div>
         );
     } else if (currentView === "register") {
@@ -122,6 +121,7 @@ function App() {
                     console.log("Usuario registrado:", userData);
                     setCurrentView("home");
                 }}
+                onNavigateToLogin={() => setCurrentView("login")}
             />
         );
     } else if (currentView === "login") {
@@ -130,57 +130,111 @@ function App() {
                 onBack={() => setCurrentView("home")}
                 onSuccess={(userData) => {
                     console.log("Usuario logueado:", userData);
-                    // guardamos sesión en el AuthStore
                     login(userData);
                     setCurrentView("home");
+                }}
+                onNavigateToForgotPassword={() => setCurrentView("forgot-password")}
+                onNavigateToRegister={() => setCurrentView("register")}
+            />
+        );
+    } else if (currentView === "forgot-password") {
+        mainContent = (
+            <ForgotPasswordForm
+                onBack={() => setCurrentView("login")}
+                onSuccess={(token) => {
+                    setResetToken(token);
+                    setCurrentView("reset-password");
+                }}
+            />
+        );
+    } else if (currentView === "reset-password") {
+        mainContent = (
+            <ResetPasswordForm
+                token={resetToken}
+                onBack={() => {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    setResetToken("");
+                    setCurrentView("home");
+                }}
+                onSuccess={() => {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    setResetToken("");
+                    setCurrentView("login");
                 }}
             />
         );
     } else if (currentView === "songs") {
-        // Vista del panel de estadísticas (lista de canciones del artista)
-        mainContent = (
-            <div className="songs-view">
-                <button className="back-button" onClick={() => setCurrentView("home")}>
-                    ← Volver al inicio
-                </button>
-
-                <SongsList />
-            </div>
-        );
+        // Only artists and labels can access the artist panel
+        if (currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <SongsList />
+                </div>
+            );
+        } else {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <div style={{ padding: 20 }}>Acceso denegado: tu cuenta no tiene permiso para ver el Panel de artista.</div>
+                </div>
+            )
+        }
     } else if (currentView === "label_stats") {
-        // Vista del panel de estadísticas agregadas de la discográfica
-        mainContent = (
-            <div className="songs-view">
-                <button className="back-button" onClick={() => setCurrentView("home")}>
-                    ← Volver al inicio
-                </button>
-
-                <LabelStatsDashboard />
-            </div>
-        );
+        // Only label/discografica role can access label panel
+        if (currentRole === 'label' || currentRole === 'discografica') {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <LabelStatsDashboard />
+                </div>
+            );
+        } else {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <div style={{ padding: 20 }}>Acceso denegado: tu cuenta no tiene permiso para ver el Panel de discográfica.</div>
+                </div>
+            )
+        }
     }
     else if (currentView === "ratings") {
-        mainContent = (
-            <div className="songs-view">
-                <button className="back-button" onClick={() => setCurrentView("home")}>
-                    ← Volver al inicio
-                </button>
+        // Ratings accessible to user, artist and label
+        if (currentRole === 'user' || currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
 
-                <Ratings />
-            </div>
-        );
+                    <Ratings />
+                </div>
+            );
+        } else {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <div style={{ padding: 20 }}>Acceso denegado: tu cuenta no tiene permiso para ver las Valoraciones de usuarios.</div>
+                </div>
+            )
+        }
     }
 
-    // --------- BARRA SUPERIOR DE ESTADO DE AUTENTICACIÓN ----------
     return (
         <>
             <header className="auth-bar">
                 <div className="auth-status">
-          <span
-              className={
-                  "status-dot " + (isAuthenticated ? "status-on" : "status-off")
-              }
-          />
+                    <span className={"status-dot " + (isAuthenticated ? "status-on" : "status-off")} />
                     {isAuthenticated ? "Sesión activa" : "No has iniciado sesión"}
                 </div>
 
@@ -193,9 +247,8 @@ function App() {
                     />
                 )}
             </header>
-                
+
             {mainContent}
-                
         </>
     );
 }

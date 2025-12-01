@@ -1,6 +1,6 @@
 // src/components/PlayCountBadge.jsx
 import { useState } from 'react';
-import { fetchSongPlays, incrementSongPlay, decrementSongPlay } from '../api/statsApi';
+import { fetchSongPlays, incrementSongPlay, decrementSongPlay } from '../../api/statsApi';
 
 export default function PlayCountBadge({ songId }) {
     const [status, setStatus] = useState('idle'); // idle | loading | success | error

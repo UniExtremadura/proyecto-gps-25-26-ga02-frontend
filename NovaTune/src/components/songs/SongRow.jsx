@@ -1,6 +1,6 @@
 // src/pages/SongRow.jsx
 import PlaysBadge from "../plays/PlaysBadge"; // misma ruta que ya tenías
-import AlbumSalesBadge from "../AlbumSalesBadge.jsx"; // NUEVO
+import AlbumSalesBadge from "../stats/AlbumSalesBadge.jsx"; // NUEVO
 
 export default function SongRow({ song }) {
     const songId = song.id ?? song.song_id ?? song._id;

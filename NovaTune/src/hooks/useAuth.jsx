@@ -97,8 +97,8 @@ export const AuthProvider = ({ children }) => {
                             const payload = JSON.parse(decodeURIComponent(escape(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))));
                             const roleClaim = payload.role || payload.roles || payload.user_type || payload.type;
                             if (roleClaim) {
-                                if (Array.isArray(roleClaim)) return String(roleClaim[0]).toLowerCase();
-                                return String(roleClaim).toLowerCase();
+                                const resolved = Array.isArray(roleClaim) ? String(roleClaim[0]).toLowerCase() : String(roleClaim).toLowerCase()
+                                return resolved;
                             }
                         } catch (e) {
                             // ignore malformed token payload
@@ -122,9 +122,9 @@ export const AuthProvider = ({ children }) => {
                     });
                     if (resp.ok) {
                         const body = await resp.json();
-                        if (body && body.user_type) return String(body.user_type).toLowerCase();
+                        if (body && body.user_type) { return String(body.user_type).toLowerCase(); }
                         // try common fields
-                        if (body && body.role) return String(body.role).toLowerCase();
+                        if (body && body.role) { return String(body.role).toLowerCase(); }
                     }
                 }
             } catch (e) {
@@ -135,7 +135,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 if (import.meta.env && import.meta.env.DEV) {
                     const devRole = localStorage.getItem('dev_user_role') || localStorage.getItem('dev_user') || localStorage.getItem('dev_role');
-                    if (devRole) return String(devRole).toLowerCase();
+                    if (devRole) { return String(devRole).toLowerCase(); }
                 }
             } catch (e) {}
 

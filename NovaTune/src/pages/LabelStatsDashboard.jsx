@@ -1,7 +1,6 @@
 // NovaTune/src/pages/LabelStatsDashboard.jsx
 import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth.jsx";
-import ArtistCompareCharts from "../components/ArtistCompareCharts";
+import ArtistCompareCharts from "../components/stats/ArtistCompareCharts";
 
 const DEFAULT_AVATAR = "https://static.vecteezy.com/system/resources/previews/036/280/651/original/default-avatar-profile-icon-social-media-user-image-gray-avatar-icon-blank-profile-silhouette-illustration-vector.jpg";
 const API_STATS_BASE = "http://127.0.0.1:8002/api/v1";
@@ -99,7 +98,7 @@ function HorizontalBarList({
 }
 
 function LabelStatsDashboard() {
-    const { getCurrentUserRole } = useAuth();
+    // Role checks removed — allow any authenticated user to access this page
     const [topRatedArtists, setTopRatedArtists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -108,25 +107,7 @@ function LabelStatsDashboard() {
     const [detailError, setDetailError] = useState(null);
     const [reloadKey, setReloadKey] = useState(0);
 
-    // Entry guard: only allow label/discografica users to use this page.
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const role = await getCurrentUserRole();
-                const r = role ? String(role).toLowerCase() : '';
-                if (!r.includes('label') && !r.includes('discograf')) {
-                    // redirect to homepage if role mismatch
-                    window.location.href = '/';
-                }
-            } catch (e) {
-                if (mounted) {
-                    window.location.href = '/';
-                }
-            }
-        })();
-        return () => { mounted = false };
-    }, [getCurrentUserRole]);
+    // Role-based access removed: do not redirect based on role
 
     // Helper: compute ratings for a canonical artist by fetching its tracks
     // and aggregating per-track rating aggregates. Moved to component scope

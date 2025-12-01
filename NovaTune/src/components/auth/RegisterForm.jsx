@@ -7,7 +7,7 @@ const RegisterForm = ({ onBack }) => {
         username: '',
         email: '',
         password: '',
-        user_type: 'user' // default to regular user
+        user_type: 'user' // default
     });
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
@@ -141,13 +141,7 @@ const RegisterForm = ({ onBack }) => {
 
         if (error.status === 422 && error.data && error.data.details) {
             // Errores de validación del servidor (email duplicado, etc.)
-            // Normalize arrays to strings for display
-            const details = {};
-            for (const key in error.data.details) {
-                const val = error.data.details[key];
-                details[key] = Array.isArray(val) ? val[0] : val;
-            }
-            setErrors(details);
+            setErrors(error.data.details);
         } else if (error.status === 409 && error.data) {
             // Conflicto - email duplicado
             setErrors({ general: 'Este email ya está registrado. ¿Ya tienes una cuenta?' });
@@ -200,7 +194,7 @@ const RegisterForm = ({ onBack }) => {
                         disabled={isLoading || showSuccess}
                     />
                     {showError('username') && (
-                        <span className="error-text">{Array.isArray(errors.username) ? errors.username[0] : errors.username}</span>
+                        <span className="error-text">{errors.username}</span>
                     )}
                 </div>
 
@@ -217,7 +211,7 @@ const RegisterForm = ({ onBack }) => {
                         disabled={isLoading || showSuccess}
                     />
                     {showError('email') && (
-                        <span className="error-text">{Array.isArray(errors.email) ? errors.email[0] : errors.email}</span>
+                        <span className="error-text">{errors.email}</span>
                     )}
                 </div>
 
@@ -234,28 +228,31 @@ const RegisterForm = ({ onBack }) => {
                         disabled={isLoading || showSuccess}
                     />
                     {showError('password') && (
-                        <span className="error-text">{Array.isArray(errors.password) ? errors.password[0] : errors.password}</span>
+                        <span className="error-text">{errors.password}</span>
                     )}
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="user_type">Tipo de usuario</label>
-                    <select
-                        id="user_type"
-                        name="user_type"
-                        value={formData.user_type}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        className={showError('user_type') ? 'error' : ''}
-                        disabled={isLoading || showSuccess}
-                    >
-                        <option value="user">Usuario</option>
-                        <option value="artist">Artista</option>
-                        <option value="label">Discográfica</option>
-                    </select>
-                    {showError('user_type') && (
-                        <span className="error-text">{Array.isArray(errors.user_type) ? errors.user_type[0] : errors.user_type}</span>
-                    )}
+                {/* Role selection card */}
+                <div className="role-card">
+                    <div className="form-group">
+                        <label htmlFor="user_type">Tipo de usuario</label>
+                        <select
+                            id="user_type"
+                            name="user_type"
+                            value={formData.user_type}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            className={showError('user_type') ? 'error' : ''}
+                            disabled={isLoading || showSuccess}
+                        >
+                            <option value="user">Usuario</option>
+                            <option value="artist">Artista</option>
+                            <option value="label">Discográfica</option>
+                        </select>
+                        {showError('user_type') && (
+                            <span className="error-text">{errors.user_type}</span>
+                        )}
+                    </div>
                 </div>
 
                 {/* ❌ ERROR GENERAL */}
