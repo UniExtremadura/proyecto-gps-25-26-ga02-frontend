@@ -9,6 +9,12 @@ export default function PlayCountBadge({ songId }) {
     const [wasNotFound, setWasNotFound] = useState(false);
 
     const consult = async () => {
+        // Guard: no requests for missing song id
+        if (!songId) {
+            setStatus('error');
+            setErrorMsg('ID de canción no disponible (no se pueden consultar reproducciones).');
+            return;
+        }
         setStatus('loading');
         setErrorMsg('');
         setWasNotFound(false);
@@ -69,6 +75,25 @@ export default function PlayCountBadge({ songId }) {
     );
 
     if (status === 'idle') {
+        // If no valid songId, render a disabled/info state instead of a working button
+        if (!songId) {
+            return (
+                <span
+                    style={{
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        background: '#fff1f0',
+                        color: '#000',
+                        fontSize: 12,
+                        border: '1px solid #ffd6d0',
+                    }}
+                    title="Este elemento no tiene un identificador numérico válido para estadísticas"
+                >
+                    ID de canción no disponible
+                </span>
+            );
+        }
+
         return btn('Ver reproducciones', consult, 'Consultar reproducciones en estadísticas');
     }
 

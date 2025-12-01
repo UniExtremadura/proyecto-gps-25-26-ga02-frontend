@@ -1,5 +1,5 @@
 // src/components/AlbumSalesBadge.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fetchAlbumSales } from "../api/statsApi";
 
 export default function AlbumSalesBadge({ albumId }) {
@@ -10,27 +10,26 @@ export default function AlbumSalesBadge({ albumId }) {
     const loadSales = async () => {
         setStatus("loading");
         setErrorMsg("");
-        const res = await fetchAlbumSales(albumId, {
-            includeRefunds: false,
-            revenue: true,
-        });
+        try {
+            console.debug("AlbumSalesBadge: loading sales", { albumId });
+        } catch (e) {}
 
+        const res = await fetchAlbumSales(albumId, { revenue: true });
         if (!res.ok) {
             setStatus("error");
-            setErrorMsg(
-                res.error ||
-                "No se han podido cargar las ventas de este álbum desde el microservicio de estadísticas."
-            );
+            setErrorMsg(res.error || "No se han podido cargar las ventas de este álbum desde el microservicio de estadísticas.");
             return;
         }
 
-        setData({
-            orders: res.orders,
-            units: res.units,
-            revenue: res.revenue,
-        });
+        setData({ orders: res.orders ?? 0, units: res.units ?? 0, revenue: res.revenue ?? null });
         setStatus("success");
     };
+
+    useEffect(() => {
+        if (!albumId) return;
+        loadSales();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [albumId]);
 
     const badgeBox = (style, children) => (
         <span
@@ -112,11 +111,7 @@ export default function AlbumSalesBadge({ albumId }) {
     }
 
     // success
-    const { orders, units, revenue } = data || {
-        orders: 0,
-        units: 0,
-        revenue: null,
-    };
+    const { orders, units, revenue } = data || { orders: 0, units: 0, revenue: null };
 
     return (
         <div

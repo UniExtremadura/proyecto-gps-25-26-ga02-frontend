@@ -1,5 +1,6 @@
 // src/pages/SongsList.jsx
 import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth.jsx";
 import axios from "axios";
 
 import PlayCountBadge from "../components/PlayCountBadge";
@@ -9,6 +10,7 @@ import { fetchAlbumSales } from "../api/statsApi";
 const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || "/api/content";
 
 export default function SongsList() {
+    const { getCurrentUserRole } = useAuth();
     const [artistId, setArtistId] = useState(""); // sin UUID por defecto
     const [status, setStatus] = useState("idle"); // idle | loading | success | error | empty
     const [songs, setSongs] = useState([]);
@@ -28,9 +30,9 @@ export default function SongsList() {
 
     // Filtros de ventas
     const [selectedAlbumId, setSelectedAlbumId] = useState("all"); // "all" o albumId concreto
-    const [includeRefunds, setIncludeRefunds] = useState(false);
     const [onlyWithSales, setOnlyWithSales] = useState(false);
     const [sortBy, setSortBy] = useState("units_desc"); // units_desc | units_asc | title_asc
+    // trigger to force re-fetching summaries when toggles change
 
     const loadSongs = async (id) => {
         const trimmed = id.trim();
@@ -120,6 +122,24 @@ export default function SongsList() {
             setIsFetchingArtists(false);
         }
     };
+
+    // Entry guard: only artists should use this page
+    useEffect(() => {
+        let mounted = true;
+        ;(async () => {
+            try {
+                const role = await getCurrentUserRole()
+                const r = role ? String(role).toLowerCase() : ''
+                if (!r.includes('artist') && !r.includes('artista')) {
+                    window.location.href = '/'
+                }
+            } catch (e) {
+                // if we cannot determine role, be conservative and redirect
+                window.location.href = '/'
+            }
+        })()
+        return () => { mounted = false }
+    }, [getCurrentUserRole])
 
     const handleArtistInputFocus = () => {
         fetchArtistOptions();
@@ -214,64 +234,30 @@ export default function SongsList() {
 
             try {
                 const results = await Promise.all(
-                    filteredAlbums.map(async (album) => {
-                        const res = await fetchAlbumSales(album.albumId, {
-                            includeRefunds,
-                            revenue: false,
-                        });
+                        filteredAlbums.map(async (album) => {
+                        // fetch a single sales summary (refunds removed)
+                        const res = await fetchAlbumSales(album.albumId, { revenue: false });
 
-                        if (!res.ok) {
+                        if (!res || !res.ok) {
                             return {
                                 ...album,
                                 units: 0,
                                 orders: 0,
-                                error:
-                                    res.error ||
-                                    "Error al obtener ventas del álbum desde el microservicio de estadísticas.",
+                                error: (res?.error) || "Error al obtener ventas del álbum desde el microservicio de estadísticas.",
                             };
                         }
 
                         return {
                             ...album,
-                            units: res.units ?? 0,
-                            orders: res.orders ?? 0,
+                            units: res?.units ?? 0,
+                            orders: res?.orders ?? 0,
                         };
                     })
                 );
 
                 if (!cancelled) {
-                    // Post-procesado en frontend: filtro "sólo álbumes con ventas"
-                    let processed = results.slice();
-
-                    if (onlyWithSales) {
-                        processed = processed.filter(
-                            (a) =>
-                                (a.units ?? 0) > 0 ||
-                                (a.orders ?? 0) > 0
-                        );
-                    }
-
-                    // Ordenación
-                    processed.sort((a, b) => {
-                        const ua = a.units ?? 0;
-                        const ub = b.units ?? 0;
-                        const ta = a.albumTitle?.toLowerCase() ?? "";
-                        const tb = b.albumTitle?.toLowerCase() ?? "";
-
-                        switch (sortBy) {
-                            case "units_asc":
-                                return ua - ub;
-                            case "title_asc":
-                                if (ta < tb) return -1;
-                                if (ta > tb) return 1;
-                                return 0;
-                            case "units_desc":
-                            default:
-                                return ub - ua;
-                        }
-                    });
-
-                    setAlbumSummaries(processed);
+                    // store raw summaries (single variant)
+                    setAlbumSummaries(results);
                     setSummaryStatus("success");
                 }
             } catch (err) {
@@ -295,9 +281,6 @@ export default function SongsList() {
         status,
         songs,
         selectedAlbumId,
-        includeRefunds,
-        onlyWithSales,
-        sortBy,
     ]);
 
     return (
@@ -438,8 +421,10 @@ export default function SongsList() {
                             {songs.map((song) => {
                                 const title =
                                     song.title ?? song.name ?? "Sin título";
-                                // Para reproducciones seguimos usando el título como ID
-                                const songId = title;
+                                // Para reproducciones debemos usar el ID numérico canónico.
+                                // Preferimos `song.id` / `song.song_id` / `song.track_id` when son numéricos.
+                                const possibleId = song.id ?? song.song_id ?? song.track_id ?? null;
+                                const songId = (possibleId && /^\d+$/.test(String(possibleId))) ? String(possibleId) : null;
 
                                 // Intentamos sacar un albumId razonable
                                 const albumId =
@@ -578,25 +563,7 @@ export default function SongsList() {
                                     ))}
                                 </select>
 
-                                {/* Incluir reembolsos */}
-                                <label
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 4,
-                                        fontSize: 13,
-                                        flex: "0 0 auto",
-                                    }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={includeRefunds}
-                                        onChange={(e) =>
-                                            setIncludeRefunds(e.target.checked)
-                                        }
-                                    />
-                                    Incluir reembolsos
-                                </label>
+                                {/* refunds UI removed */}
 
                                 {/* Ordenación */}
                                 <div
@@ -715,7 +682,40 @@ export default function SongsList() {
 
                             {summaryStatus === "success" &&
                                 albumSummaries.length > 0 && (
-                                    <table
+                                    (() => {
+                                        // derive the displayed list according to the current UI toggles
+                                        const displayed = albumSummaries
+                                                                    .map((a) => ({
+                                                                        ...a,
+                                                                        displayUnits: a.units ?? 0,
+                                                                        displayOrders: a.orders ?? 0,
+                                                                    }))
+                                            .filter((a) => {
+                                                if (!onlyWithSales) return true;
+                                                return (a.displayUnits ?? 0) > 0 || (a.displayOrders ?? 0) > 0;
+                                            });
+
+                                        // sorting
+                                        displayed.sort((x, y) => {
+                                            const ua = x.displayUnits ?? 0;
+                                            const ub = y.displayUnits ?? 0;
+                                            const ta = x.albumTitle?.toLowerCase() ?? "";
+                                            const tb = y.albumTitle?.toLowerCase() ?? "";
+                                            switch (sortBy) {
+                                                case "units_asc":
+                                                    return ua - ub;
+                                                case "title_asc":
+                                                    if (ta < tb) return -1;
+                                                    if (ta > tb) return 1;
+                                                    return 0;
+                                                case "units_desc":
+                                                default:
+                                                    return ub - ua;
+                                            }
+                                        });
+
+                                        return (
+                                            <table
                                         style={{
                                             width: "100%",
                                             borderCollapse: "collapse",
@@ -764,43 +764,45 @@ export default function SongsList() {
                                             </th>
                                         </tr>
                                         </thead>
-                                        <tbody>
-                                        {albumSummaries.map((album) => (
-                                            <tr key={album.albumId}>
-                                                <td
-                                                    style={{
-                                                        padding:
-                                                            "8px 12px",
-                                                        borderBottom:
-                                                            "1px solid #f0f0f0",
-                                                    }}
-                                                >
-                                                    {album.albumTitle}
-                                                </td>
-                                                <td
-                                                    style={{
-                                                        padding:
-                                                            "8px 12px",
-                                                        borderBottom:
-                                                            "1px solid #f0f0f0",
-                                                    }}
-                                                >
-                                                    {album.units}
-                                                </td>
-                                                <td
-                                                    style={{
-                                                        padding:
-                                                            "8px 12px",
-                                                        borderBottom:
-                                                            "1px solid #f0f0f0",
-                                                    }}
-                                                >
-                                                    {album.orders}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
+                                                <tbody>
+                                                {displayed.map((album) => (
+                                                    <tr key={album.albumId}>
+                                                        <td
+                                                            style={{
+                                                                padding:
+                                                                    "8px 12px",
+                                                                borderBottom:
+                                                                    "1px solid #f0f0f0",
+                                                            }}
+                                                        >
+                                                            {album.albumTitle}
+                                                        </td>
+                                                        <td
+                                                            style={{
+                                                                padding:
+                                                                    "8px 12px",
+                                                                borderBottom:
+                                                                    "1px solid #f0f0f0",
+                                                            }}
+                                                        >
+                                                            {album.displayUnits}
+                                                        </td>
+                                                        <td
+                                                            style={{
+                                                                padding:
+                                                                    "8px 12px",
+                                                                borderBottom:
+                                                                    "1px solid #f0f0f0",
+                                                            }}
+                                                        >
+                                                            {album.displayOrders}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </table>
+                                        );
+                                    })()
                                 )}
                         </section>
                     </div>

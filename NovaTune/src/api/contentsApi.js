@@ -9,8 +9,13 @@ export async function fetchArtistSongs(artistId) {
     // API de contenidos devuelve { items:[...] , total:n }
     const items = Array.isArray(data?.items) ? data.items : []
     return items.map(t => ({
-        id: t.id,
+        // normalize id: prefer t.id, fall back to track_id or song_id
+        id: t.id || t.track_id || t.song_id,
         title: t.title || t.name || 'untitled',
         artist: t.artist?.name || 'unknown',
+        artist_id: artistId,
+        // Normalizar información de álbum si está disponible
+        album: t.album || null,
+        album_id: t.album?.id ?? t.album_id ?? null,
     }))
 }
