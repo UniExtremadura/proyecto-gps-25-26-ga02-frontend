@@ -136,33 +136,33 @@ const RegisterForm = ({ onBack }) => {
             }, 3000);
 
         } catch (error) {
-        // ERRORES - Mostrar mensajes específicos
-        console.log('Error completo:', error); // Para debugging
+            // ERRORES - Mostrar mensajes específicos
+            console.log('Error completo:', error); // Para debugging
 
-        if (error.status === 422 && error.data && error.data.details) {
-            // Errores de validación del servidor (email duplicado, etc.)
-            // Normalize arrays to strings for display
-            const details = {};
-            for (const key in error.data.details) {
-                const val = error.data.details[key];
-                details[key] = Array.isArray(val) ? val[0] : val;
+            if (error.status === 422 && error.data && error.data.details) {
+                // Errores de validación del servidor (email duplicado, etc.)
+                // Normalize arrays to strings for display
+                const details = {};
+                for (const key in error.data.details) {
+                    const val = error.data.details[key];
+                    details[key] = Array.isArray(val) ? val[0] : val;
+                }
+                setErrors(details);
+            } else if (error.status === 409 && error.data) {
+                // Conflicto - email duplicado
+                setErrors({ general: 'Este email ya está registrado. ¿Ya tienes una cuenta?' });
+            } else if (error.data && error.data.message) {
+                // Error general del servidor
+                setErrors({ general: error.data.message });
+            } else if (error.status === 0) {
+                // Error de conexión
+                setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
+            } else {
+                // Error inesperado
+                setErrors({ general: 'Ha ocurrido un error inesperado. Intenta nuevamente.' });
             }
-            setErrors(details);
-        } else if (error.status === 409 && error.data) {
-            // Conflicto - email duplicado
-            setErrors({ general: 'Este email ya está registrado. ¿Ya tienes una cuenta?' });
-        } else if (error.data && error.data.message) {
-            // Error general del servidor
-            setErrors({ general: error.data.message });
-        } else if (error.status === 0) {
-            // Error de conexión
-            setErrors({ general: 'Error de conexión con el servidor. Intenta nuevamente.' });
-        } else {
-            // Error inesperado
-            setErrors({ general: 'Ha ocurrido un error inesperado. Intenta nuevamente.' });
-        }
-        setShowSuccess(false);
-    } finally {
+            setShowSuccess(false);
+        } finally {
             setIsLoading(false);
         }
     };
@@ -171,7 +171,9 @@ const RegisterForm = ({ onBack }) => {
 
     return (
         <div className="register-container">
-            <button onClick={onBack} className="back-btn">← Volver</button>
+            <button className="back-btn" onClick={() => window.history.back()}>
+                ← Volver
+            </button>
             <h2>Crear Cuenta en NovaTune</h2>
 
             {/* ✅ MENSAJE DE ÉXITO */}

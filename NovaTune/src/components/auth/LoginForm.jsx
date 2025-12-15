@@ -104,8 +104,8 @@ const LoginForm = ({ onBack, onSuccess }) => {
             //localStorage.setItem('refresh_token', response.refresh_token);
 
             //console.log('Tokens guardados:', {
-                //access_token: response.access_token,
-                //refresh_token: response.refresh_token
+            //access_token: response.access_token,
+            //refresh_token: response.refresh_token
             //});
 
             //En lugar de guardar en local, usamos el hook
@@ -217,7 +217,11 @@ const LoginForm = ({ onBack, onSuccess }) => {
                 </button>
 
                 <div className="login-links">
-                    <p>¿No tienes cuenta? <button type="button" className="link-btn">Regístrate aquí</button></p>
+                    <p>¿No tienes cuenta?
+                        <button type="button" className="link-btn">
+                            <a href="http://localhost:5173/register" className="link-btn">Regístrate aquí</a>
+                        </button>
+                    </p>
                 </div>
             </form>
         </div>
