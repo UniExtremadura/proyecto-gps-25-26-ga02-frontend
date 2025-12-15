@@ -6,14 +6,15 @@
 }
 
 .logo {
-    height: 6em;
-    padding: 1.5em;
+    height: 18em;
     will-change: filter;
     transition: filter 300ms;
 }
+
 .logo:hover {
     filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
     filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +23,7 @@
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }
@@ -84,9 +86,17 @@
 }
 
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* Asegurar que el contenido no quede detrás de la barra fija */
@@ -299,6 +309,7 @@
     font-size: 0.85rem;
     color: #9ca3af;
 }
+
 /* === Panel estadísticas globales discográfica === */
 
 .label-stats-root {
@@ -405,7 +416,8 @@
 .chart-card h2 {
     margin: 0 0 0.25rem;
     font-size: 1rem;
-    color: #22c55e; /* match green used in bars */
+    color: #22c55e;
+    /* match green used in bars */
     font-weight: 700;
 }
 
@@ -452,7 +464,8 @@
 
 /* Estilo para mostrar el UUID junto al nombre del artista */
 .chart-row-uuid {
-    color: #6b7280; /* gris más oscuro */
+    color: #6b7280;
+    /* gris más oscuro */
     margin-left: 0.5rem;
     font-size: 0.85rem;
     font-weight: 400;
@@ -460,10 +473,12 @@
 
 /* Artist detail card shown when clicking a row */
 .artist-detail-card {
-    margin-top: 0; /* bring it up to align with the left card */
+    margin-top: 0;
+    /* bring it up to align with the left card */
     /* rely on .chart-card for padding/background/border to match shape exactly */
     display: block;
 }
+
 .artist-detail-image {
     width: 120px;
     height: 120px;
@@ -472,6 +487,7 @@
     background: #071027;
     display: block;
 }
+
 .artist-detail-meta h3 {
     margin: 0;
 }
