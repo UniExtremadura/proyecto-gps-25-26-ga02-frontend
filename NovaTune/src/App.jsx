@@ -1,7 +1,5 @@
 // NovaTune/src/App.jsx
 import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 
 import RegisterForm from "./components/auth/RegisterForm.jsx";
@@ -11,6 +9,10 @@ import ResetPasswordForm from "./components/auth/ResetPasswordForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
 
 import SongsList from "./pages/SongsList.jsx";
+import SongCarousel from "./components/songs/SongCarousel.jsx";
+import LabelCarousel from "./components/labels/LabelCarousel.jsx";
+import ArtistCarousel from "./components/artists/ArtistCarousel.jsx";
+import AlbumCarousel from "./components/albums/AlbumCarousel.jsx";
 import LabelStatsDashboard from "./pages/LabelStatsDashboard.jsx";
 import Ratings from "./pages/Ratings.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
@@ -57,15 +59,8 @@ function App() {
         mainContent = (
             <div className="root-container">
                 <div className="logos-strip">
-                    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-                        <img src={viteLogo} className="logo" alt="Vite logo" />
-                    </a>
-                    <a href="https://react.dev" target="_blank" rel="noreferrer">
-                        <img src={reactLogo} className="logo react" alt="React logo" />
-                    </a>
+                    <img src="images/novatune_logo_nobg.png" className="logo react" alt="React logo" />
                 </div>
-
-                <h1>Vite + React + NovaTune</h1>
 
                 <div className="card">
                     <p>
@@ -75,10 +70,18 @@ function App() {
                     </p>
 
                     {!isAuthenticated && (
-                        <div className="auth-buttons">
-                            <button onClick={() => setCurrentView("register")}>Registrarse</button>
-                            <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
-                        </div>
+                        <>
+                            <div className="auth-buttons">
+                                <button onClick={() => setCurrentView("register")}>Registrarse</button>
+                                <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
+                            </div>
+                            <div className="auth-buttons">
+                                <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
+                                <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
+                                <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
+                                <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
+                            </div>
+                        </>
                     )}
 
                     {isAuthenticated && (
@@ -86,22 +89,22 @@ function App() {
                             <p>Accede rápidamente a tus paneles de estadísticas:</p>
                             <div className="stats-shortcut-buttons">
                                 {/* Show Artist panel for artist+label roles */}
-                                { (currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
-                                    <button className="primary-button" onClick={() => setCurrentView("songs") }>
+                                {(currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="primary-button" onClick={() => setCurrentView("songs")}>
                                         Panel de artista
                                     </button>
                                 )}
 
                                 {/* Show Label panel for label role only */}
-                                { (currentRole === 'label' || currentRole === 'discografica') && (
-                                    <button className="secondary-button" onClick={() => setCurrentView("label_stats") }>
+                                {(currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="secondary-button" onClick={() => setCurrentView("label_stats")}>
                                         Panel de discográfica
                                     </button>
                                 )}
 
                                 {/* Show Ratings for users, artists and labels */}
-                                { (currentRole === 'user' || currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
-                                    <button className="secondary-button" onClick={() => setCurrentView("ratings") }>
+                                {(currentRole === 'user' || currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="secondary-button" onClick={() => setCurrentView("ratings")}>
                                         Valoraciones de usuarios
                                     </button>
                                 )}
@@ -109,8 +112,6 @@ function App() {
                         </div>
                     )}
                 </div>
-
-                <p className="read-the-docs">Click on the Vite and React logos to learn more</p>
             </div>
         );
     } else if (currentView === "register") {
@@ -228,6 +229,42 @@ function App() {
                 </div>
             )
         }
+    } else if (currentView === "artists") {
+        mainContent = (
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+                <ArtistCarousel />
+            </div>
+        );
+    } else if (currentView === "tracks") {
+        mainContent = (
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+                <SongCarousel />
+            </div>
+        );
+    } else if (currentView === "albums") {
+        mainContent = (
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+                <AlbumCarousel />
+            </div>
+        );
+    } else if (currentView === "labels") {
+        mainContent = (
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+                <LabelCarousel />
+            </div>
+        );
     }
 
     return (
