@@ -1,16 +1,15 @@
 // src/pages/SongsList.jsx
 import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth.jsx";
 import axios from "axios";
 
-import PlayCountBadge from "../components/PlayCountBadge";
-import AlbumSalesBadge from "../components/AlbumSalesBadge";
+import PlayCountBadge from "../components/stats/PlayCountBadge";
+import AlbumSalesBadge from "../components/stats/AlbumSalesBadge";
 import { fetchAlbumSales } from "../api/statsApi";
 
 const CONTENT_BASE = import.meta.env.VITE_CONTENT_API_BASE || "/api/content";
 
 export default function SongsList() {
-    const { getCurrentUserRole } = useAuth();
+    // Role checks removed — allow any authenticated user to access this page
     const [artistId, setArtistId] = useState(""); // sin UUID por defecto
     const [status, setStatus] = useState("idle"); // idle | loading | success | error | empty
     const [songs, setSongs] = useState([]);
@@ -123,23 +122,7 @@ export default function SongsList() {
         }
     };
 
-    // Entry guard: only artists should use this page
-    useEffect(() => {
-        let mounted = true;
-        ;(async () => {
-            try {
-                const role = await getCurrentUserRole()
-                const r = role ? String(role).toLowerCase() : ''
-                if (!r.includes('artist') && !r.includes('artista')) {
-                    window.location.href = '/'
-                }
-            } catch (e) {
-                // if we cannot determine role, be conservative and redirect
-                window.location.href = '/'
-            }
-        })()
-        return () => { mounted = false }
-    }, [getCurrentUserRole])
+    // Role-based access removed: do not redirect based on role
 
     const handleArtistInputFocus = () => {
         fetchArtistOptions();

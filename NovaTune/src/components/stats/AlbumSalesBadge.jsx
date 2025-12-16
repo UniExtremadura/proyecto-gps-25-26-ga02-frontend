@@ -1,6 +1,6 @@
-// src/components/AlbumSalesBadge.jsx
+// src/components/stats/AlbumSalesBadge.jsx
 import { useState, useEffect } from "react";
-import { fetchAlbumSales } from "../api/statsApi";
+import { fetchAlbumSales } from "../../api/statsApi";
 
 export default function AlbumSalesBadge({ albumId }) {
     const [status, setStatus] = useState("idle"); // idle | loading | success | error
@@ -11,7 +11,7 @@ export default function AlbumSalesBadge({ albumId }) {
         setStatus("loading");
         setErrorMsg("");
         try {
-            console.debug("AlbumSalesBadge: loading sales", { albumId });
+            // loading hook (no debug output)
         } catch (e) {}
 
         const res = await fetchAlbumSales(albumId, { revenue: true });
