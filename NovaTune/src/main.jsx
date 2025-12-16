@@ -6,7 +6,6 @@ import './index.css'
 import { AuthProvider } from './hooks/useAuth.jsx' // NUEVO IMPORT
 import {CartProvider} from "./context/CartContext.jsx";
 import App from './App.jsx'
-import {AuthProvider} from "./hooks/useAuth.jsx";
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
