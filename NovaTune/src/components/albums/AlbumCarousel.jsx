@@ -10,7 +10,7 @@ export default function AlbumCarousel() {
 
     useEffect(() => {
         const fetchAlbums = async () => {
-            const response = await fetch("http://localhost:8000/api/v1/albums/");
+            const response = await fetch("http://localhost:8001/api/v1/albums/");
             const data = await response.json();
             setAlbums(data);
         };

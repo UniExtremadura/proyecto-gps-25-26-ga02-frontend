@@ -11,7 +11,7 @@ export default function SongCarousel() {
 
     useEffect(() => {
         const fetchSongs = async () => {
-            const response = await fetch("http://localhost:8000/api/v1/tracks/");
+            const response = await fetch("http://localhost:8001/api/v1/tracks/");
             const data = await response.json();
             setSongs(data);
         };
