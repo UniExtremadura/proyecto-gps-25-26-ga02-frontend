@@ -10,7 +10,7 @@ export default function ArtistCarousel() {
 
     useEffect(() => {
         const fetchArtists = async () => {
-            const response = await fetch("http://localhost:8000/api/v1/artists/");
+            const response = await fetch("http://localhost:8001/api/v1/artists/");
             const data = await response.json();
             setArtists(data);
         };
