@@ -1,9 +1,8 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
-
+const API_BASE_URL = '/api/users';
 // Función para registrar usuario
 export const registerUser = async (userData) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        const response = await fetch(`${API_BASE_URL}/auth/register/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
@@ -25,7 +24,7 @@ export const registerUser = async (userData) => {
 // Función para login de usuario
 export const loginUser = async (userData) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetch(`${API_BASE_URL}/auth/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
@@ -49,7 +48,7 @@ export const logoutUser = async () => {
     if (!refresh_token) throw new Error('No hay token de refresh disponible');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        const response = await fetch(`${API_BASE_URL}/auth/logout/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -73,7 +72,7 @@ export const logoutUser = async () => {
 // Función para refresh token
 export const refreshTokens = async (refreshToken) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: refreshToken }),
@@ -128,7 +127,7 @@ export const authFetch = async (url, options = {}) => {
 // Función para solicitar recuperación de contraseña
 export const requestPasswordReset = async (email) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/password-reset/request`, {
+        const response = await fetch(`${API_BASE_URL}/auth/password-reset/request/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),
@@ -149,7 +148,7 @@ export const requestPasswordReset = async (email) => {
 // Función para validar token de recuperación
 export const validateResetToken = async (token) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/password-reset/validate-token`, {
+        const response = await fetch(`${API_BASE_URL}/auth/password-reset/validate-token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
@@ -170,7 +169,7 @@ export const validateResetToken = async (token) => {
 // Función para confirmar nueva contraseña
 export const confirmPasswordReset = async (token, newPassword, confirmPassword) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/password-reset/confirm`, {
+        const response = await fetch(`${API_BASE_URL}/auth/password-reset/confirm/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, new_password: newPassword, confirm_password: confirmPassword }),

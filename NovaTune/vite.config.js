@@ -7,13 +7,19 @@ export default defineConfig({
     server: {
         port: 5173,
         proxy: {
+            // Usuarios -> 8000
+            '/api/users': {
+                target: 'http://127.0.0.1:8000',
+                changeOrigin: true,
+                rewrite: (p) => p.replace(/^\/api\/users/, '/api/v1'),
+            },
             // Contenidos -> 8001
             '/api/content': {
                 target: 'http://127.0.0.1:8001',
                 changeOrigin: true,
                 rewrite: (p) => p.replace(/^\/api\/content/, '/api/v1'),
             },
-            // Estadísticas -> 8000
+            // Estadísticas -> 8002
             '/api/stats': {
                 target: 'http://127.0.0.1:8002',
                 changeOrigin: true,
@@ -26,7 +32,6 @@ export default defineConfig({
                 // Transforma "/api/payments/cart" -> "/api/v1/cart"
                 rewrite: (p) => p.replace(/^\/api\/payments/, '/api/v1'),
             },
-
         },
     },
 })

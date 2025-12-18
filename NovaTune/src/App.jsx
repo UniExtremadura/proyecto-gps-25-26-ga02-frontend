@@ -1,7 +1,5 @@
 // NovaTune/src/App.jsx
 import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 
 import RegisterForm from "./components/auth/RegisterForm.jsx";
@@ -100,14 +98,15 @@ function App() {
                                 <button onClick={() => setCurrentView("register")}>Registrarse</button>
                                 <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
                             </div>
-                            <div className="auth-buttons">
-                                <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
-                                <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
-                                <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
-                                <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
-                            </div>
                         </>
                     )}
+
+                    <div className="auth-buttons">
+                        <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
+                        <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
+                        <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
+                        <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
+                    </div>
 
                     {isAuthenticated && (
                         <div className="stats-shortcut">

@@ -11,7 +11,7 @@ export default function LabelCarousel() {
 
     useEffect(() => {
         const fetchLabels = async () => {
-            const response = await fetch("http://localhost:8000/api/v1/labels/");
+            const response = await fetch("http://localhost:8001/api/v1/labels/");
             const data = await response.json();
             setLabels(data);
         };
