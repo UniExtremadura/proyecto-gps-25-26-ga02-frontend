@@ -71,21 +71,7 @@ function App() {
                     <img src="images/novatune_logo_nobg.png" className="logo react" alt="React logo" />
                 </div>
 
-                <h1>Vite + React + NovaTune</h1>
-
                 <div className="card">
-
-                    {isAuthenticated && (
-                        <div className="dashboard-buttons">
-                            <button onClick={() => setCurrentView("songs")}>
-                                Ver estadísticas
-                            </button>
-                            <button className="primary" onClick={() => setCurrentView("cart")}>
-                                🛒 Ir a mi Carrito
-                            </button>
-                        </div>
-                    )}
-
                     <p>
                         {isAuthenticated
                             ? "¡Bienvenido! Tu sesión está activa."
@@ -98,15 +84,14 @@ function App() {
                                 <button onClick={() => setCurrentView("register")}>Registrarse</button>
                                 <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
                             </div>
+                            <div className="auth-buttons">
+                                <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
+                                <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
+                                <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
+                                <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
+                            </div>
                         </>
                     )}
-
-                    <div className="auth-buttons">
-                        <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
-                        <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
-                        <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
-                        <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
-                    </div>
 
                     {isAuthenticated && (
                         <div className="stats-shortcut">
