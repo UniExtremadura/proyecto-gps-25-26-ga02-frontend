@@ -36,6 +36,16 @@ function CheckoutForm({ orderId, onSuccess, onBack }) {
             // 3. Confirmar Pago (Frontend -> Backend -> Stripe Intent)
             const intentRes = await paymentsService.confirmPayment(orderId, internalPmId);
 
+            const { status, client_secret } = intentRes.data;
+
+            // --- CORRECCIÓN AQUÍ ---
+            // Si el backend dice que ya está "succeeded", ¡NO hacemos nada más con Stripe!
+            if (status === 'succeeded') {
+                await refreshCart();
+                onSuccess(); // ¡ÉXITO DIRECTO!
+                return;
+            }
+
             // 4. (Opcional) Manejo de 3D Secure si el backend lo requiriera
             if (intentRes.data.client_secret) {
                 const { error: confirmError } = await stripe.confirmCardPayment(

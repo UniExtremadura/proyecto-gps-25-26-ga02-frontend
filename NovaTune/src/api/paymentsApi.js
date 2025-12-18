@@ -1,22 +1,22 @@
 import axios from 'axios';
 
-// Configura la URL base de la API desde las variables de entorno
-const BASE_URL = import.meta.env.VITE_PAYMENTS_API_BASE || '/api/payments';
+// 1. AJUSTE CLAVE: Apuntamos directamente a tu backend en el puerto 8003
+// (Asegúrate de que este es el puerto donde corre tu Django "python manage.py runserver 8003")
+const BASE_URL = 'http://localhost:8003/api/v1';
 
-// Crea una instancia de Axios para las solicitudes relacionadas con pagos
 const paymentsApi = axios.create({
     baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
 });
 
-// Interceptor para agregar el token de autenticación a cada solicitud
+// Interceptor para agregar el token de autenticación
 paymentsApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token'); // Ajusta según tu Auth
+    const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
 
-// Funciones para interactuar con la API de pagos
+// Funciones para interactuar con la API de pagos (Carrito)
 export const cartApi = {
     getCart: () => paymentsApi.get('/cart/'),
     addItem: (productId, quantity, price) => paymentsApi.post('/cart/items/', {
@@ -33,14 +33,22 @@ export const ordersApi = {
     getOrder: (orderId) => paymentsApi.get(`/orders/${orderId}/`),
 };
 
-// Funciones para manejar métodos de pago y confirmación de pagos
+// --- AQUÍ ESTABA EL ERROR ---
 export const paymentsService = {
-    savePaymentMethod: (token) => paymentsApi.post('/payment-methods/', {
-        provider: 'stripe', token: stripeToken, make_default: true
-    }),
-    confirmPayment: (orderId, pmId) => paymentsApi.post('/payments/intent/', {
-        order_id: orderId, payment_method_id: pmId
-    })
+    // 1. Guardar método: Usamos la URL nueva y el nombre de variable correcto
+    savePaymentMethod: (paymentMethodId) => {
+        return paymentsApi.post('/payments/save-method/', {
+            payment_method_id: paymentMethodId
+        });
+    },
+
+    // 2. Confirmar pago: Usamos la URL nueva '/payments/confirm/'
+    confirmPayment: (orderId, pmId) => {
+        return paymentsApi.post('/payments/confirm/', {
+            order_id: orderId,
+            payment_method_id: pmId
+        });
+    }
 };
 
 export default paymentsApi;
