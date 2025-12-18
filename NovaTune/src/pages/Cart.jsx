@@ -42,7 +42,7 @@ export default function Cart ({ onCheckout, onBack }) {
     };
 
     if (loading) return <div className="p-4">Cargando carrito...</div>;
-    if (!cart || !cart.items.length) return <div className="card"><h2>Carrito vacío</h2><button onClick={onBack}>Volver</button></div>
+    if (!cart || !cart.items.length) return <div className="card"><h2>Carrito vacío</h2></div>
 
     return (
         <div className="card cart-view">

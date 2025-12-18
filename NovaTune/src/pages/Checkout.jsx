@@ -103,7 +103,7 @@ function CheckoutForm({ orderId, onSuccess, onBack }) {
 }
 
 // Componente Wrapper que carga el contexto de Stripe
-export default function CheckoutPage({ orderId, onBack, onPaymentSuccess }) {
+export default function CheckoutPage({ orderId, onBack, onSuccess }) {
     return (
         <div className="card checkout-view max-w-md mx-auto">
             <h2 className="text-2xl font-bold mb-4">Finalizar Compra</h2>
@@ -113,7 +113,7 @@ export default function CheckoutPage({ orderId, onBack, onPaymentSuccess }) {
                 <CheckoutForm
                     orderId={orderId}
                     onBack={onBack}
-                    onSuccess={onPaymentSuccess}
+                    onSuccess={onSuccess}
                 />
             </Elements>
         </div>

@@ -16,20 +16,16 @@ import AlbumCarousel from "./components/albums/AlbumCarousel.jsx";
 import LabelStatsDashboard from "./pages/LabelStatsDashboard.jsx";
 import Ratings from "./pages/Ratings.jsx";
 import Cart from "./pages/Cart.jsx";
-import Checkout from "./pages/Checkout.jsx";
+import PaymentsDashboard from "./pages/PaymentsDashboard.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
-import {useCart } from "./context/CartContext.jsx";
+import Checkout from "./pages/Checkout.jsx";
 
 function App() {
     const [currentView, setCurrentView] = useState("home");
     const [resetToken, setResetToken] = useState("");
-    // count se queda por si lo necesitas más adelante (plantilla de Vite)
-    const [count, setCount] = useState(0);
-    const [activeOrderId, setActiveOrderId] = useState(null);
-    const { cartCount } = useCart();
-
     const { isAuthenticated, login, logout, getCurrentUserRole } = useAuth();
     const [currentRole, setCurrentRole] = useState(null)
+    const [pendingOrderId, setPendingOrderId] = useState(null);
 
     const getTokenFromURL = () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -54,14 +50,12 @@ function App() {
                 if (!cancelled) setCurrentRole(r)
             } catch (e) {
                 if (!cancelled) setCurrentRole(null)
-                if (!cancelled) setCurrentRole(null)
             }
         }
         void loadRole()
         return () => { cancelled = true }
     }, [isAuthenticated])
 
-    // --------- CONTENIDO PRINCIPAL SEGÚN LA VISTA ACTUAL ----------
     let mainContent;
 
     if (currentView === "home") {
@@ -84,18 +78,19 @@ function App() {
                                 <button onClick={() => setCurrentView("register")}>Registrarse</button>
                                 <button onClick={() => setCurrentView("login")}>Iniciar sesión</button>
                             </div>
-                            <div className="auth-buttons">
-                                <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
-                                <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
-                                <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
-                                <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
-                            </div>
                         </>
                     )}
 
+                    <div className="auth-buttons">
+                        <button onClick={() => setCurrentView("artists")}>Ver artistas</button>
+                        <button onClick={() => setCurrentView("tracks")}>Ver canciones</button>
+                        <button onClick={() => setCurrentView("albums")}>Ver álbumes</button>
+                        <button onClick={() => setCurrentView("labels")}>Ver discográficas</button>
+                    </div>
+
                     {isAuthenticated && (
                         <div className="stats-shortcut">
-                            <p>Accede rápidamente a tus paneles de estadísticas:</p>
+                            <p>Accede rápidamente a tus paneles de gestión:</p>
                             <div className="stats-shortcut-buttons">
                                 {/* Show Artist panel for artist+label roles */}
                                 {(currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
@@ -108,6 +103,14 @@ function App() {
                                 {(currentRole === 'label' || currentRole === 'discografica') && (
                                     <button className="secondary-button" onClick={() => setCurrentView("label_stats")}>
                                         Panel de discográfica
+                                    </button>
+                                )}
+
+                                {/* --- NUEVO BOTÓN PARA PAGOS --- */}
+                                {/* Visible para artistas y discográficas */}
+                                {(currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') && (
+                                    <button className="secondary-button" onClick={() => setCurrentView("payments")}>
+                                        Gestión de Pagos
                                     </button>
                                 )}
 
@@ -174,7 +177,6 @@ function App() {
             />
         );
     } else if (currentView === "songs") {
-        // Only artists and labels can access the artist panel
         if (currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') {
             mainContent = (
                 <div className="songs-view">
@@ -195,7 +197,6 @@ function App() {
             )
         }
     } else if (currentView === "label_stats") {
-        // Only label/discografica role can access label panel
         if (currentRole === 'label' || currentRole === 'discografica') {
             mainContent = (
                 <div className="songs-view">
@@ -215,16 +216,35 @@ function App() {
                 </div>
             )
         }
+    } else if (currentView === "payments") {
+        // Permitir acceso a artists, labels y discograficas
+        if (currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <PaymentsDashboard />
+                </div>
+            );
+        } else {
+            mainContent = (
+                <div className="songs-view">
+                    <button className="back-button" onClick={() => setCurrentView("home")}>
+                        ← Volver al inicio
+                    </button>
+                    <div style={{ padding: 20 }}>Acceso denegado: No tienes permisos para ver la sección de Pagos.</div>
+                </div>
+            )
+        }
     }
     else if (currentView === "ratings") {
-        // Ratings accessible to user, artist and label
         if (currentRole === 'user' || currentRole === 'artist' || currentRole === 'label' || currentRole === 'discografica') {
             mainContent = (
                 <div className="songs-view">
                     <button className="back-button" onClick={() => setCurrentView("home")}>
                         ← Volver al inicio
                     </button>
-
                     <Ratings />
                 </div>
             );
@@ -274,26 +294,39 @@ function App() {
                 <LabelCarousel />
             </div>
         );
-    }else if (currentView === "cart") {
+    } else if (currentView === "cart") {
         mainContent = (
-            <Cart
-                onBack={() => setCurrentView("home")}
-                onCheckout={(orderId) => {
-                    setActiveOrderId(orderId); // Guardamos el ID
-                    setCurrentView("checkout"); // Navegamos al pago
-                }}
-            />
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("home")}>
+                    ← Volver al inicio
+                </button>
+                {/* Aquí renderizamos tu página del carrito */}
+                <Cart
+                    onCheckout={(orderId) => {
+                        console.log("Pedido creado, yendo al pago:", orderId);
+                        setPendingOrderId(orderId); // 1. Guardamos el ID
+                        setCurrentView("checkout"); // 2. Cambiamos de pantalla
+                    }}
+                />
+            </div>
         );
     } else if (currentView === "checkout") {
         mainContent = (
-            <Checkout
-                orderId={activeOrderId}
-                onBack={() => setCurrentView("cart")}
-                onPaymentSuccess={() => {
-                    alert("¡Pago realizado con éxito! Recibirás tu factura en breve.");
-                    setCurrentView("home");
-                }}
-            />
+            <div className="songs-view">
+                <button className="back-button" onClick={() => setCurrentView("cart")}>
+                    ← Volver al carrito
+                </button>
+
+                {/* Renderizamos tu componente Checkout existente */}
+                <Checkout
+                    orderId={pendingOrderId}
+                    onSuccess={() => {
+                        setPendingOrderId(null);
+                        setCurrentView("home");
+                    }}
+                    onBack={() => setCurrentView("cart")}
+                />
+            </div>
         );
     }
 
@@ -305,27 +338,31 @@ function App() {
                     {isAuthenticated ? "Sesión activa" : "No has iniciado sesión"}
                 </div>
 
+                {/* Agrupamos los elementos de la derecha en un div con flex */}
                 {isAuthenticated && (
-                    <div style = {{ display: "flex", alignItems: "center", gap: "15px" }}>
-                        {/* --- MINI-CARRITO (GA02-71) --- */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+
+                        {/* Botón del Carrito */}
                         <button
+                            className="secondary-button"
+                            style={{ padding: "8px 15px", display: "flex", alignItems: "center", gap: "5px" }}
                             onClick={() => setCurrentView("cart")}
-                            style={{ fontSize: '0.9em', fontWeight: 'bold', cursor: 'pointer' }}
                         >
-                            🛒 Carrito ({cartCount})
+                            🛒 Carrito
                         </button>
-                    <LogoutButton
-                        onLogout={() => {
-                            logout();
-                            setCurrentView("home");
-                        }}
-                    />
+
+                        {/* Botón de Logout */}
+                        <LogoutButton
+                            onLogout={() => {
+                                logout();
+                                setCurrentView("home");
+                            }}
+                        />
                     </div>
                 )}
             </header>
 
             {mainContent}
-
         </>
     );
 }
