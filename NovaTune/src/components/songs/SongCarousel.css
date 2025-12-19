@@ -1,0 +1,88 @@
+.carousel-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 1100px;
+    margin: 2rem auto;
+}
+
+
+.carousel-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+
+.carousel-card {
+    background: #111;
+    color: #fff;
+    border-radius: 16px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Distribuye espacio si la tarjeta crece */
+    align-items: center;
+    min-height: 300px; /* Altura mínima para que se vean uniformes */
+}
+
+
+.carousel-card:hover {
+    transform: translateY(-6px);
+}
+
+
+.cover {
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    object-fit: cover; /* Evita que la imagen se deforme */
+    aspect-ratio: 1/1; /* Mantiene la imagen cuadrada */
+}
+
+
+.nav-button {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    color: white; /* Aseguramos que se vean las flechas en modo oscuro */
+}
+
+
+.nav-button:hover {
+    transform: scale(1.2);
+    color: #1db954; /* Efecto verde al pasar el ratón por la flecha */
+}
+
+/* --- ESTILOS DEL BOTÓN DE CARRITO --- */
+.btn-add-cart {
+    background-color: #1db954; /* Verde brillante */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px; /* Bordes muy redondeados (Pill shape) */
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: auto; /* Empuja el botón hacia abajo si sobra espacio */
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.btn-add-cart:hover {
+    background-color: #1ed760; /* Un poco más claro al hover */
+    transform: scale(1.05); /* Crece un poquito */
+    box-shadow: 0 6px 12px rgba(29, 185, 84, 0.4); /* Resplandor verde */
+}
+
+.btn-add-cart:active {
+    transform: scale(0.95); /* Efecto de "click" */
+}
