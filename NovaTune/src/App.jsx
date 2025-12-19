@@ -18,6 +18,7 @@ import Cart from "./pages/Cart.jsx";
 import PaymentsDashboard from "./pages/PaymentsDashboard.jsx";
 import { useAuth } from "./hooks/useAuth.jsx";
 import Checkout from "./pages/Checkout.jsx";
+import ProfilePage from './components/profile/ProfilePage.jsx';
 
 function App() {
     const [currentView, setCurrentView] = useState("home");
@@ -338,6 +339,13 @@ function App() {
             </div>
         );
     }
+    else if (currentView === "profile") {
+        mainContent = (
+            <ProfilePage
+                onBack={() => setCurrentView("home")}
+            />
+        );
+    }
 
     return (
         <>
@@ -350,6 +358,14 @@ function App() {
                 {/* Agrupamos los elementos de la derecha en un div con flex */}
                 {isAuthenticated && (
                     <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+
+                        <button
+                            className="primary-button"
+                            style={{ padding: "8px 15px", display: "flex", alignItems: "center", gap: "5px" }}
+                            onClick={() => setCurrentView("profile")}
+                        >
+                            Mi Perfil
+                        </button>
 
                         {/* Botón del Carrito */}
                         <button
