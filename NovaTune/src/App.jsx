@@ -1,4 +1,3 @@
-// NovaTune/src/App.jsx
 import { useState, useEffect } from "react";
 import "./App.css";
 
@@ -7,7 +6,7 @@ import LoginForm from "./components/auth/LoginForm.jsx";
 import ForgotPasswordForm from "./components/auth/ForgotPasswordForm.jsx";
 import ResetPasswordForm from "./components/auth/ResetPasswordForm.jsx";
 import LogoutButton from "./components/auth/LogoutButton.jsx";
-
+import OrderSuccess from "./pages/OrderSuccess.jsx";
 import SongsList from "./pages/SongsList.jsx";
 import SongCarousel from "./components/songs/SongCarousel.jsx";
 import LabelCarousel from "./components/labels/LabelCarousel.jsx";
@@ -322,9 +321,19 @@ function App() {
                     orderId={pendingOrderId}
                     onSuccess={() => {
                         setPendingOrderId(null);
-                        setCurrentView("home");
+                        setCurrentView("order_success");
                     }}
                     onBack={() => setCurrentView("cart")}
+                />
+            </div>
+        );
+    } else if (currentView === "order_success") {
+        // --- NUEVA VISTA DE ÉXITO ---
+        mainContent = (
+            <div className="songs-view">
+                {/* No ponemos botón de "volver atrás" para evitar reenvíos */}
+                <OrderSuccess
+                    onNavigateHome={() => setCurrentView("home")}
                 />
             </div>
         );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./SongCarousel.css";
-
+import { cartApi } from "../../api/paymentsApi.js";
 
 export default function SongCarousel() {
     const [songs, setSongs] = useState([]);
@@ -21,37 +21,30 @@ export default function SongCarousel() {
     }, []);
 
     const handleAddToCart = async (song) => {
-        console.log("DATOS DE LA CANCIÓN:", song);
+        console.log("Añadiendo al carrito:", song.title);
         try {
-            // Nota: Asegúrate de que esta URL sea la correcta de tu backend
-            const response = await fetch("http://localhost:8003/api/v1/cart/items/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    // Hemos quitado el Token como pediste
-                },
-                body: JSON.stringify({
-                    product_id: song.track_id,          // El ID de la canción
-                    quantity: 1,                  // Cantidad (por defecto 1)
-                    // OJO: Asumimos que la canción trae el precio.
-                    // Si el precio es fijo, cámbialo aquí.
-                    price_at_addition: song.price || "1.00"
-                })
-            });
+            // Usamos cartApi en lugar de fetch.
+            // El interceptor meterá el Token por nosotros automáticamente.
+            // Argumentos: (productId, quantity, price)
+            await cartApi.addItem(
+                song.track_id,
+                1,
+                song.price || "1.00"
+            );
 
-            if (response.ok) {
-                alert(`¡"${song.title}" añadida al carrito!`);
-            } else {
-                console.error("Error del servidor:", response.statusText);
-                alert("Error al añadir al carrito.");
-            }
+            // Si no da error (catch), es que ha ido bien
+            alert(`¡"${song.title}" añadida al carrito!`);
 
         } catch (error) {
-            console.error("Error de red:", error);
-            alert("No se pudo conectar con el servidor.");
+            console.error("Error añadiendo al carrito:", error);
+            // Si el error es 401, es que el token caducó
+            if (error.response && error.response.status === 401) {
+                alert("Tu sesión ha caducado. Por favor, haz login de nuevo.");
+            } else {
+                alert("Error al conectar con el servidor de pagos.");
+            }
         }
     };
-
     const prev = () => {
         setStartIndex((prev) =>
             prev === 0 ? Math.max(songs.length - VISIBLE_COUNT, 0) : prev - 1

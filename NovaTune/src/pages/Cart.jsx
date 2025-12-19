@@ -31,13 +31,43 @@ export default function Cart ({ onCheckout, onBack }) {
 
     const handleCheckout = async () => {
         try {
-            setLoading(true);
+            console.log("🔵 Iniciando creación de pedido...");
+
+            // 1. Llamada al backend
             const response = await ordersApi.createOrder();
-            // Pasamos el ID del pedido al componente padre
-            onCheckout(response.data.order_id);
-        } catch (err) {
-            alert("Error al crear pedido: " + err.message);
-            setLoading(false);
+
+            console.log("🔵 Respuesta completa del Backend:", response);
+
+            // 2. INTENTO DE EXTRACCIÓN ROBUSTO
+            // Tu serializer 'OrderAcceptedResponseSerializer' devuelve { order_id: X, status: '...' }
+            // Pero por si acaso, buscamos en varios sitios.
+            const responseData = response.data || {};
+
+            // Prioridad: 1. order_id, 2. id, 3. pk
+            const newOrderId = responseData.order_id || responseData.id || responseData.pk;
+
+            // 3. VALIDACIÓN
+            if (!newOrderId) {
+                console.error("🔴 ERROR CRÍTICO: No se encontró un ID en la respuesta:", responseData);
+                alert("Error: El servidor respondió pero no envió el ID del pedido.");
+                return;
+            }
+
+            // Comprobamos si es un UUID (contiene guiones y es largo) o un Número
+            if (typeof newOrderId === 'string' && newOrderId.length > 30) {
+                console.error("🔴 ERROR: El ID recibido parece un UUID, no un número:", newOrderId);
+                alert("Error de sistema: Se recibió un ID de carrito en lugar de un ID de pedido.");
+                return;
+            }
+
+            console.log("✅ Pedido creado correctamente. ID Numérico:", newOrderId);
+
+            // 4. PASAMOS EL ID CORRECTO
+            onCheckout(newOrderId);
+
+        } catch (error) {
+            console.error("🔴 Error creando pedido:", error);
+            alert("No se pudo crear el pedido. Revisa la consola.");
         }
     };
 

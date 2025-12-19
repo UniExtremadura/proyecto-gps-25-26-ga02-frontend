@@ -11,8 +11,19 @@ const paymentsApi = axios.create({
 
 // Interceptor para agregar el token de autenticación
 paymentsApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    const token = localStorage.getItem('access_token');
+
+    // --- LOGS DE PRUEBA ---
+    console.log("--> INTERCEPTOR: Token leído del storage:", token);
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log("--> INTERCEPTOR: Header enviado:", config.headers.Authorization);
+    } else {
+        console.warn("--> INTERCEPTOR: ¡No hay token! Se envía petición anónima.");
+    }
+    // ------------------------
+
     return config;
 });
 
@@ -43,10 +54,11 @@ export const paymentsService = {
     },
 
     // 2. Confirmar pago: Usamos la URL nueva '/payments/confirm/'
-    confirmPayment: (orderId, pmId) => {
+    confirmPayment: (orderId, paymentMethodId, customerId) => {
         return paymentsApi.post('/payments/confirm/', {
             order_id: orderId,
-            payment_method_id: pmId
+            payment_method_id: paymentMethodId,
+            customer_id: customerId
         });
     }
 };
