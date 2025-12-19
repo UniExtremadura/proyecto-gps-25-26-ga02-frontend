@@ -1,14 +1,18 @@
-// main.jsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './hooks/useAuth.jsx' // NUEVO IMPORT
+import {CartProvider} from "./context/CartContext.jsx";
+import App from './App.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <AuthProvider> {/* ENVOLVER LA APP CON EL PROVIDER */}
-            <App />
+        <AuthProvider>
+            <CartProvider>
+                <App />
+            </CartProvider>
         </AuthProvider>
     </React.StrictMode>,
 )

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./SongCarousel.css";
-
+import { cartApi } from "../../api/paymentsApi.js";
 
 export default function SongCarousel() {
     const [songs, setSongs] = useState([]);
@@ -20,7 +20,31 @@ export default function SongCarousel() {
         fetchSongs();
     }, []);
 
+    const handleAddToCart = async (song) => {
+        console.log("Añadiendo al carrito:", song.title);
+        try {
+            // Usamos cartApi en lugar de fetch.
+            // El interceptor meterá el Token por nosotros automáticamente.
+            // Argumentos: (productId, quantity, price)
+            await cartApi.addItem(
+                song.track_id,
+                1,
+                song.price || "1.00"
+            );
 
+            // Si no da error (catch), es que ha ido bien
+            alert(`¡"${song.title}" añadida al carrito!`);
+
+        } catch (error) {
+            console.error("Error añadiendo al carrito:", error);
+            // Si el error es 401, es que el token caducó
+            if (error.response && error.response.status === 401) {
+                alert("Tu sesión ha caducado. Por favor, haz login de nuevo.");
+            } else {
+                alert("Error al conectar con el servidor de pagos.");
+            }
+        }
+    };
     const prev = () => {
         setStartIndex((prev) =>
             prev === 0 ? Math.max(songs.length - VISIBLE_COUNT, 0) : prev - 1
@@ -52,6 +76,14 @@ export default function SongCarousel() {
                         <img src={song.album.cover_url} alt={song.title} className="cover" />
                         <h4>{song.title}</h4>
                         <p>{song.artist.name}</p>
+
+                        <button
+                            className="btn-add-cart"
+                            onClick={() => handleAddToCart(song)}
+                        >
+                            Añadir al carrito +
+                        </button>
+
                     </div>
                 ))}
             </div>
