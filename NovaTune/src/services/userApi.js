@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api/users';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 // Función para registrar usuario
 export const registerUser = async (userData) => {
     try {
@@ -184,5 +184,66 @@ export const confirmPasswordReset = async (token, newPassword, confirmPassword) 
             status: 0,
             data: { code: 'NETWORK_ERROR', message: 'Error de conexión. Verifica tu internet e intenta nuevamente.' }
         };
+    }
+};
+
+export const getUserProfile = async () => {
+    try {
+        const response = await authFetch('/me');
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw {
+                status: response.status,
+                data: data
+            };
+        }
+
+        return data;
+    } catch (error) {
+        if (error.status) {
+            throw error;
+        } else {
+            throw {
+                status: 0,
+                data: {
+                    code: 'NETWORK_ERROR',
+                    message: 'Error de conexión al obtener el perfil'
+                }
+            };
+        }
+    }
+};
+
+// Actualizar perfil del usuario
+export const updateUserProfile = async (profileData) => {
+    try {
+        const response = await authFetch('/me', {
+            method: 'PATCH',
+            body: JSON.stringify(profileData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw {
+                status: response.status,
+                data: data
+            };
+        }
+
+        return data;
+    } catch (error) {
+        if (error.status) {
+            throw error;
+        } else {
+            throw {
+                status: 0,
+                data: {
+                    code: 'NETWORK_ERROR',
+                    message: 'Error de conexión al actualizar el perfil'
+                }
+            };
+        }
     }
 };
